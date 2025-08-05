@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "aromance_test_backend": {
+      "candid": "src/aromance_test_backend/aromance_test_backend.did",
+      "package": "aromance_test_backend",
+      "type": "rust"
+    },
+    "aromance_test_frontend": {
+      "dependencies": [
+        "aromance_test_backend"
+      ],
+      "source": [
+        "src/aromance_test_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "aromance_test_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

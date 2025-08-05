@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/aromance_test_backend"
+]
+resolver = "2"
