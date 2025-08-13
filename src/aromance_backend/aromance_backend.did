@@ -1,0 +1,33 @@
+type UserProfile = record {
+  user_id : text;
+  wallet_address : opt text;
+  preferences : vec record { text; text };
+  consultation_completed : bool;
+  created_at : nat64;
+};
+
+type Product = record {
+  id : text;
+  seller_id : text;
+  name : text;
+  brand : text;
+  price_idr : nat64;
+  fragrance_family : text;
+  notes : vec text;
+  occasion : vec text;
+  season : vec text;
+  description : text;
+  image_url : text;
+  stock : nat32;
+  verified : bool;
+};
+
+service : {
+  greet : (text) -> (text) query;
+  get_aromance_info : () -> (text) query;
+  create_user_profile : (UserProfile) -> (variant { Ok : text; Err : text });
+  get_user_profile : (text) -> (opt UserProfile) query;
+  add_product : (Product) -> (variant { Ok : text; Err : text });
+  get_products : () -> (vec Product) query;
+  search_products : (text) -> (vec Product) query;
+}
