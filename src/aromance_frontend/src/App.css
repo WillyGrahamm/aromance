@@ -312,40 +312,16 @@ body::before {
     background-clip: text;
 }
 
-/* Nav Center */
-.nav-center {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-}
-
-.nav-center h1 {
-    font-family: 'LMMid', Arial, sans-serif;
-    font-size: 1.8rem;
-    color: #333;
-    background: linear-gradient(135deg, #333 0%, #ffc107 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-align: center;
-}
-
-.dark-mode .nav-center h1 {
-    background: linear-gradient(135deg, #fff 0%, #ffc107 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
 /* Nav Actions */
 .nav-actions {
     display: flex;
     align-items: center;
     gap: 15px;
+    margin-left: auto;
 }
 
 .nav-action-btn {
-    background: linear-gradient(135deg, #ffc107, #ffeb3b);
+    background: linear-gradient(135deg, #ac8100, #b6a400);
     border: none;
     border-radius: 50%;
     width: 50px;
@@ -392,7 +368,7 @@ body::before {
 }
 
 .wallet-btn {
-    background: linear-gradient(135deg, #4285f4, #34a853) !important;
+    background: linear-gradient(135deg, #aa8200, #a0a834) !important;
 }
 
 .wallet-btn:hover {
