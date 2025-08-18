@@ -21,29 +21,6 @@ const AGENT_ENDPOINTS = {
 
 // IDL Factory for backend canister
 const idlFactory = ({ IDL }) => {
-  const UserProfile = IDL.Record({
-    'user_id': IDL.Text,
-    'wallet_address': IDL.Text,
-    'username': IDL.Text,
-    'profile_image': IDL.Text,
-    'created_at': IDL.Nat64,
-  });
-
-  const FragranceIdentity = IDL.Record({
-    'lifestyle': IDL.Text,
-    'preferred_families': IDL.Vec(IDL.Text),
-    'budget_range': IDL.Text,
-    'personality_traits': IDL.Vec(IDL.Text),
-    'occasions': IDL.Vec(IDL.Text),
-  });
-
-  const DecentralizedIdentity = IDL.Record({
-    'user_id': IDL.Text,
-    'identity_hash': IDL.Text,
-    'personality_data': FragranceIdentity,
-    'created_at': IDL.Nat64,
-  });
-
   const Product = IDL.Record({
     'id': IDL.Text,
     'name': IDL.Text,
@@ -77,73 +54,11 @@ const idlFactory = ({ IDL }) => {
     'generated_at': IDL.Nat64,
   });
 
-  const Transaction = IDL.Record({
-    'transaction_id': IDL.Text,
-    'buyer_id': IDL.Text,
-    'seller_id': IDL.Text,
-    'product_id': IDL.Text,
-    'quantity': IDL.Nat32,
-    'total_amount_idr': IDL.Nat64,
-    'status': IDL.Text,
-    'created_at': IDL.Nat64,
-  });
-
-  const VerifiedReview = IDL.Record({
-    'review_id': IDL.Text,
-    'reviewer_id': IDL.Text,
-    'product_id': IDL.Text,
-    'overall_rating': IDL.Float64,
-    'longevity_rating': IDL.Float64,
-    'sillage_rating': IDL.Float64,
-    'value_rating': IDL.Float64,
-    'detailed_review': IDL.Text,
-    'verified_purchase': IDL.Bool,
-    'created_at': IDL.Nat64,
-  });
-
-  const VerificationTier = IDL.Variant({
-    'BasicReviewer': IDL.Null,
-    'PremiumReviewer': IDL.Null,
-    'EliteReviewer': IDL.Null,
-    'BasicSeller': IDL.Null,
-    'PremiumSeller': IDL.Null,
-    'EliteSeller': IDL.Null,
-  });
-
   return IDL.Service({
-    // User Management
-    'create_user_profile': IDL.Func([UserProfile], [IDL.Text], []),
-    'get_user_profile': IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
-    'create_decentralized_identity': IDL.Func([IDL.Text, FragranceIdentity], [DecentralizedIdentity], []),
-    
-    // Staking & Verification
-    'stake_for_verification': IDL.Func([IDL.Text, IDL.Nat64, VerificationTier], [IDL.Text], []),
-    
-    // Product Management
     'get_products': IDL.Func([], [IDL.Vec(Product)], ['query']),
-    'search_products_by_personality': IDL.Func([IDL.Text], [IDL.Vec(Product)], ['query']),
-    'get_halal_products': IDL.Func([], [IDL.Vec(Product)], ['query']),
-    
-    // AI Recommendations
-    'generate_ai_recommendations': IDL.Func([IDL.Text], [IDL.Vec(AIRecommendation)], []),
     'get_recommendations_for_user': IDL.Func([IDL.Text], [IDL.Vec(AIRecommendation)], ['query']),
-    
-    // Reviews
-    'create_verified_review': IDL.Func([VerifiedReview], [IDL.Text], []),
-    'get_product_reviews': IDL.Func([IDL.Text], [IDL.Vec(VerifiedReview)], ['query']),
-    
-    // Transactions
-    'create_transaction': IDL.Func([Transaction], [IDL.Text], []),
-    'get_user_transactions': IDL.Func([IDL.Text], [IDL.Vec(Transaction)], ['query']),
-    
-    // Platform Stats
-    'get_platform_statistics': IDL.Func([], [IDL.Record({
-      'total_users': IDL.Nat64,
-      'total_products': IDL.Nat64,
-      'total_transactions': IDL.Nat64,
-      'total_gmv_idr': IDL.Nat64,
-    })], ['query']),
-    'get_trending_fragrances': IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'greet': IDL.Func([IDL.Text], [IDL.Text], ['query']),
+    'get_aromance_info': IDL.Func([], [IDL.Text], ['query']),
   });
 };
 
@@ -194,11 +109,6 @@ const CustomIcons = {
       <path d="M12,2A3,3 0 0,1 15,5C15,5.8 14.7,6.5 14.2,7C15.3,7.3 16,8.3 16,9.5A3.5,3.5 0 0,1 12.5,13H12.35C12.75,13.6 13,14.3 13,15A3,3 0 0,1 10,18C9.2,18 8.5,17.7 8,17.2C7.7,18.3 6.7,19 5.5,19A3.5,3.5 0 0,1 2,15.5C2,14.4 2.7,13.4 3.8,13.1C3.3,12.4 3,11.7 3,11A3,3 0 0,1 6,8C6.8,8 7.5,8.3 8,8.8C8.3,7.7 9.3,7 10.5,7A3.5,3.5 0 0,1 14,10.5C14,11.6 13.3,12.6 12.2,12.9C12.7,13.6 13,14.3 13,15A3,3 0 0,1 10,18L12,2Z" fill="currentColor"/>
     </svg>
   ),
-  Star: () => (
-    <svg viewBox="0 0 24 24" className="custom-icon">
-      <path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" fill="currentColor"/>
-    </svg>
-  ),
   Close: () => (
     <svg viewBox="0 0 24 24" className="custom-icon">
       <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" fill="currentColor"/>
@@ -215,7 +125,7 @@ const CustomIcons = {
     </svg>
   ),
   Delete: () => (
-    <svg viewBox="0 0 24 24" className="custom-icon">
+    <svg viewBox="0 24 24" className="custom-icon">
       <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" fill="currentColor"/>
     </svg>
   ),
@@ -247,7 +157,7 @@ const CustomIcons = {
 };
 
 const App = () => {
-  // UI States
+  const [activeTab, setActiveTab] = useState('home');
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showAIConsultation, setShowAIConsultation] = useState(false);
@@ -255,46 +165,32 @@ const App = () => {
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [userProfile, setUserProfile] = useState({
+    username: '',
+    profileImage: '',
+    verificationTier: null
+  });
   
-  // User States
-  const [userProfile, setUserProfile] = useState(null);
-  const [tempUsername, setTempUsername] = useState('');
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [userWallet, setUserWallet] = useState(null);
-  const [userDID, setUserDID] = useState(null);
-  const [consultationCompleted, setConsultationCompleted] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
-  
-  // Data States
   const [products, setProducts] = useState([]);
   const [aiRecommendations, setAiRecommendations] = useState([]);
   const [personalizedProducts, setPersonalizedProducts] = useState([]);
   const [otherProducts, setOtherProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [productReviews, setProductReviews] = useState({});
-  
-  // Loading States
   const [loading, setLoading] = useState(true);
-  const [consultationLoading, setConsultationLoading] = useState(false);
-  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  // Backend States
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [actor, setActor] = useState(null);
   const [backendConnected, setBackendConnected] = useState(false);
-  
-  // Error States
-  const [error, setError] = useState(null);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [userWallet, setUserWallet] = useState(null);
+  const [userDID, setUserDID] = useState(null);
+  const [consultationCompleted, setConsultationCompleted] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
 
   // Initialize ICP agent
   useEffect(() => {
     const initBackend = async () => {
       try {
-        setLoading(true);
         const agent = new HttpAgent({ host: HOST });
         
         if (process.env.DFX_NETWORK !== 'ic') {
@@ -307,138 +203,55 @@ const App = () => {
         });
 
         setActor(backendActor);
+
+        const greeting = await backendActor.greet('Aromance User');
+        console.log('Backend connection successful:', greeting);
         setBackendConnected(true);
 
-        // Load initial data
-        await loadInitialData(backendActor);
+        await loadBackendData(backendActor);
         
       } catch (error) {
         console.error('Failed to connect to backend:', error);
-        setError('Failed to connect to backend. Some features may not work.');
-        setBackendConnected(false);
-      } finally {
-        setLoading(false);
+        setProducts([]);
+        setOtherProducts([]);
+        setPersonalizedProducts([]);
       }
+      setLoading(false);
     };
 
     initBackend();
   }, []);
 
-  // Load user data when wallet connected
-  useEffect(() => {
-    if (walletConnected && userWallet && actor) {
-      loadUserData();
-    }
-  }, [walletConnected, userWallet, actor]);
-
-  const loadInitialData = async (backendActor) => {
+  const loadBackendData = async (backendActor) => {
     try {
-      const allProducts = await backendActor.get_products();
-      setProducts(allProducts);
-      setOtherProducts(allProducts);
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    }
-  };
-
-  const loadUserData = async () => {
-    if (!actor || !userWallet) return;
-
-    try {
-      // Load user profile
-      const profile = await actor.get_user_profile(userWallet);
-      if (profile.length > 0) {
-        setUserProfile(profile[0]);
-        setTempUsername(profile[0].username);
-        
-        // Check if user has completed consultation (has DID)
-        // This would be checked via the DID system
-        setConsultationCompleted(true);
-        setUserDID(`did:aromance:${userWallet.slice(0, 8)}`);
-        
-        // Load user's recommendations and orders
-        await loadUserRecommendations();
-        await loadUserOrders();
-      } else {
-        // Create new user profile
-        await createNewUserProfile();
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  };
-
-  const createNewUserProfile = async () => {
-    if (!actor || !userWallet) return;
-
-    try {
-      const newProfile = {
-        user_id: userWallet,
-        wallet_address: userWallet,
-        username: `User_${userWallet.slice(0, 8)}`,
-        profile_image: '',
-        created_at: BigInt(Date.now() * 1000000),
-      };
-
-      await actor.create_user_profile(newProfile);
-      setUserProfile(newProfile);
-      setTempUsername(newProfile.username);
-    } catch (error) {
-      console.error('Error creating user profile:', error);
-    }
-  };
-
-  const loadUserRecommendations = async () => {
-    if (!actor || !userWallet) return;
-
-    try {
-      setRecommendationsLoading(true);
+      setLoading(true);
       
-      // Load AI recommendations
-      const recommendations = await actor.get_recommendations_for_user(userWallet);
-      if (recommendations.length > 0) {
-        setAiRecommendations(recommendations);
+      const backendProducts = await backendActor.get_products();
+      
+      if (backendProducts && backendProducts.length > 0) {
+        setProducts(backendProducts);
+        setOtherProducts(backendProducts);
         
-        // Get recommended products
-        const recProductIds = recommendations.map(r => r.product_id);
-        const recProducts = products.filter(p => recProductIds.includes(p.id));
-        
-        // Load personalized products based on personality
-        if (userProfile && userProfile.personality_type) {
-          const personalizedProds = await actor.search_products_by_personality(userProfile.personality_type);
-          setPersonalizedProducts(personalizedProds);
+        if (userDID) {
+          try {
+            const recommendations = await backendActor.get_recommendations_for_user(userDID);
+            if (recommendations && recommendations.length > 0) {
+              setAiRecommendations(recommendations);
+              
+              const recProductIds = recommendations.map(r => r.product_id);
+              const recProducts = backendProducts.filter(p => recProductIds.includes(p.id));
+              setPersonalizedProducts(recProducts);
+            }
+          } catch (error) {
+            console.log('No AI recommendations available yet');
+          }
         }
       }
-    } catch (error) {
-      console.log('No recommendations available yet');
-    } finally {
-      setRecommendationsLoading(false);
-    }
-  };
-
-  const loadUserOrders = async () => {
-    if (!actor || !userWallet) return;
-
-    try {
-      const transactions = await actor.get_user_transactions(userWallet);
       
-      // Convert transactions to orders format
-      const ordersList = await Promise.all(transactions.map(async (tx) => {
-        const product = products.find(p => p.id === tx.product_id);
-        return {
-          id: tx.transaction_id,
-          product: product,
-          quantity: Number(tx.quantity),
-          total: Number(tx.total_amount_idr),
-          date: new Date(Number(tx.created_at) / 1000000).toISOString(),
-          status: tx.status,
-          canReview: tx.status === 'completed'
-        };
-      }));
-      
-      setOrders(ordersList);
+      setLoading(false);
     } catch (error) {
-      console.error('Error loading user orders:', error);
+      console.error('Error loading backend data:', error);
+      setLoading(false);
     }
   };
 
@@ -447,131 +260,74 @@ const App = () => {
     if (principal) {
       setWalletConnected(true);
       setUserWallet(principal);
+      setUserProfile(prev => ({
+        ...prev,
+        username: `User_${principal.slice(0, 8)}`
+      }));
       console.log('Connected to wallet:', principal);
     }
   };
 
   const startAIConsultation = async () => {
     if (!walletConnected) {
-      setError('Please connect your wallet first');
+      alert('Please connect your wallet first');
       return;
     }
     
     try {
-      setConsultationLoading(true);
       const userId = userWallet;
       const newSessionId = `session_${userId}_${Date.now()}`;
       setSessionId(newSessionId);
       
-      // Start consultation with Coordinator Agent
-      const coordinatorResponse = await fetch(`${AGENT_ENDPOINTS.coordinator}/api/consultation/start`, {
+      // Start consultation with AI agent
+      const response = await fetch(`${AGENT_ENDPOINTS.consultation}/consultation/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          session_id: newSessionId
+        })
       });
       
-      if (coordinatorResponse.ok) {
-        const result = await coordinatorResponse.json();
-        setSessionId(result.session_id);
-        
-        // Start consultation with Consultation Agent
-        const consultationResponse = await fetch(`${AGENT_ENDPOINTS.consultation}/consultation/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            session_id: result.session_id
-          })
-        });
-        
-        if (consultationResponse.ok) {
-          setShowAIConsultation(true);
-        } else {
-          throw new Error('Failed to start consultation');
-        }
+      if (response.ok) {
+        setShowAIConsultation(true);
       } else {
-        throw new Error('Failed to initialize consultation');
+        console.error('Failed to start consultation');
+        // Simulate consultation for demo
+        setShowAIConsultation(true);
       }
     } catch (error) {
       console.error('Error starting consultation:', error);
-      setError('Failed to start AI consultation. Please try again.');
-    } finally {
-      setConsultationLoading(false);
+      // Simulate consultation for demo
+      setShowAIConsultation(true);
     }
   };
 
-  const completeConsultation = async (consultationData) => {
-    if (!actor || !userWallet) return;
+  const completeConsultation = async () => {
+    setConsultationCompleted(true);
+    setShowAIConsultation(false);
     
-    try {
-      setConsultationLoading(true);
-      
-      // Create Decentralized Identity in backend
-      const fragranceIdentity = {
-        lifestyle: consultationData.lifestyle || 'casual',
-        preferred_families: consultationData.fragrance_families || ['fresh'],
-        budget_range: consultationData.budget_range || 'moderate',
-        personality_traits: consultationData.personality_traits || ['confident'],
-        occasions: consultationData.occasions || ['daily_work'],
-      };
-      
-      const did = await actor.create_decentralized_identity(userWallet, fragranceIdentity);
-      setUserDID(did.identity_hash);
-      setConsultationCompleted(true);
-      setShowAIConsultation(false);
-      
-      // Generate AI recommendations
-      await generateAIRecommendations();
-      
-    } catch (error) {
-      console.error('Error completing consultation:', error);
-      setError('Failed to complete consultation. Please try again.');
-    } finally {
-      setConsultationLoading(false);
-    }
-  };
-
-  const generateAIRecommendations = async () => {
-    if (!actor || !userWallet) return;
+    // Simulate DID creation
+    const simulatedDID = `did:aromance:${userWallet.slice(0, 8)}`;
+    setUserDID(simulatedDID);
     
-    try {
-      setRecommendationsLoading(true);
+    // Generate AI recommendations (simulate)
+    if (products.length > 0) {
+      const shuffled = [...products].sort(() => 0.5 - Math.random());
+      const recommendations = shuffled.slice(0, 5);
+      const personalized = shuffled.slice(5, 10);
       
-      // Generate recommendations via backend
-      const recommendations = await actor.generate_ai_recommendations(userWallet);
       setAiRecommendations(recommendations);
-      
-      // Get recommended products
-      const recProductIds = recommendations.map(r => r.product_id);
-      const recProducts = products.filter(p => recProductIds.includes(p.id));
-      
-      // Load personalized products
-      if (userProfile && userProfile.personality_type) {
-        const personalizedProds = await actor.search_products_by_personality(userProfile.personality_type);
-        setPersonalizedProducts(personalizedProds);
-      }
-      
-    } catch (error) {
-      console.error('Error generating recommendations:', error);
-      setError('Failed to generate recommendations. Please try again.');
-    } finally {
-      setRecommendationsLoading(false);
+      setPersonalizedProducts(personalized);
     }
   };
 
-  const refreshOtherProducts = async () => {
-    if (!actor) return;
-    
-    try {
-      setRefreshing(true);
-      const allProducts = await actor.get_products();
-      // Shuffle for variety
-      const shuffled = [...allProducts].sort(() => 0.5 - Math.random());
+  const refreshOtherProducts = () => {
+    if (products.length > 0) {
+      const shuffled = [...products].sort(() => 0.5 - Math.random());
       setOtherProducts(shuffled);
-    } catch (error) {
-      console.error('Error refreshing products:', error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -604,219 +360,43 @@ const App = () => {
     ));
   };
 
-  const purchaseProduct = async (product, quantity = 1) => {
-    if (!actor || !userWallet) {
-      setError('Please connect your wallet first');
-      return;
-    }
+  const purchaseProduct = (product) => {
+    // Create order
+    const newOrder = {
+      id: `order_${Date.now()}`,
+      product,
+      quantity: 1,
+      total: product.price_idr,
+      date: new Date().toISOString(),
+      status: 'completed',
+      canReview: true
+    };
     
-    try {
-      setCheckoutLoading(true);
-      
-      // Check inventory via agent
-      const inventoryCheck = await fetch(`${AGENT_ENDPOINTS.inventory}/inventory`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userWallet,
-          product_ids: [product.id],
-          action: 'check_availability'
-        })
-      });
-      
-      if (!inventoryCheck.ok) {
-        throw new Error('Product not available');
-      }
-      
-      // Create transaction in backend
-      const transaction = {
-        transaction_id: `tx_${Date.now()}_${product.id}`,
-        buyer_id: userWallet,
-        seller_id: product.seller_id,
-        product_id: product.id,
-        quantity: quantity,
-        total_amount_idr: BigInt(product.price_idr * quantity),
+    setOrders([newOrder, ...orders]);
+    
+    // Remove from cart if exists
+    removeFromCart(product.id);
+    
+    alert('Purchase successful! Check your order history.');
+  };
+
+  const checkout = () => {
+    cart.forEach(item => {
+      const newOrder = {
+        id: `order_${Date.now()}_${item.id}`,
+        product: item,
+        quantity: item.quantity,
+        total: item.price_idr * item.quantity,
+        date: new Date().toISOString(),
         status: 'completed',
-        created_at: BigInt(Date.now() * 1000000),
+        canReview: true
       };
-      
-      await actor.create_transaction(transaction);
-      
-      // Remove from cart if exists
-      removeFromCart(product.id);
-      
-      // Reload orders
-      await loadUserOrders();
-      
-      alert('Purchase successful! Check your order history.');
-      
-    } catch (error) {
-      console.error('Error purchasing product:', error);
-      setError('Failed to complete purchase. Please try again.');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const checkout = async () => {
-    if (!actor || !userWallet || cart.length === 0) return;
+      setOrders(prev => [newOrder, ...prev]);
+    });
     
-    try {
-      setCheckoutLoading(true);
-      
-      // Check inventory for all items
-      const productIds = cart.map(item => item.id);
-      const inventoryCheck = await fetch(`${AGENT_ENDPOINTS.inventory}/inventory`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userWallet,
-          product_ids: productIds,
-          action: 'check_availability'
-        })
-      });
-      
-      if (!inventoryCheck.ok) {
-        throw new Error('Some products are not available');
-      }
-      
-      // Create transactions for each item
-      for (const item of cart) {
-        const transaction = {
-          transaction_id: `tx_${Date.now()}_${item.id}`,
-          buyer_id: userWallet,
-          seller_id: item.seller_id,
-          product_id: item.id,
-          quantity: item.quantity,
-          total_amount_idr: BigInt(item.price_idr * item.quantity),
-          status: 'completed',
-          created_at: BigInt(Date.now() * 1000000),
-        };
-        
-        await actor.create_transaction(transaction);
-      }
-      
-      // Clear cart and reload orders
-      setCart([]);
-      await loadUserOrders();
-      setShowCart(false);
-      
-      alert('Checkout successful! Check your order history.');
-      
-    } catch (error) {
-      console.error('Error during checkout:', error);
-      setError('Failed to complete checkout. Please try again.');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const subscribeToTier = async (tier) => {
-    if (!actor || !userWallet) {
-      setError('Please connect your wallet first');
-      return;
-    }
-    
-    try {
-      setSubscriptionLoading(true);
-      
-      // Define tier amounts and types
-      const tierMap = {
-        'Basic Reviewer': { amount: 300000n, type: { BasicReviewer: null } },
-        'Premium Reviewer': { amount: 950000n, type: { PremiumReviewer: null } },
-        'Elite Reviewer': { amount: 1900000n, type: { EliteReviewer: null } },
-        'Basic Seller': { amount: 500000n, type: { BasicSeller: null } },
-        'Premium Seller': { amount: 1500000n, type: { PremiumSeller: null } },
-        'Elite Seller': { amount: 3000000n, type: { EliteSeller: null } }
-      };
-      
-      const tierInfo = tierMap[tier];
-      if (!tierInfo) {
-        throw new Error('Invalid tier selected');
-      }
-      
-      // TODO: Implement Plug Wallet payment here
-      // For now, we'll proceed with the staking
-      
-      await actor.stake_for_verification(userWallet, tierInfo.amount, tierInfo.type);
-      
-      // Update user profile
-      setUserProfile(prev => ({
-        ...prev,
-        verificationTier: tier
-      }));
-      
-      setShowSubscriptionModal(false);
-      alert(`Successfully subscribed to ${tier} tier!`);
-      
-    } catch (error) {
-      console.error('Error subscribing to tier:', error);
-      setError('Failed to subscribe to tier. Please try again.');
-    } finally {
-      setSubscriptionLoading(false);
-    }
-  };
-
-  const saveUserProfile = async () => {
-    if (!actor || !userProfile || !tempUsername.trim()) return;
-    
-    try {
-      const updatedProfile = {
-        ...userProfile,
-        username: tempUsername.trim(),
-        updated_at: BigInt(Date.now() * 1000000),
-      };
-      
-      // Update profile in backend
-      await actor.create_user_profile(updatedProfile);
-      setUserProfile(updatedProfile);
-      
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      setError('Failed to save profile. Please try again.');
-    }
-  };
-
-  const loadProductReviews = async (productId) => {
-    if (!actor) return;
-    
-    try {
-      const reviews = await actor.get_product_reviews(productId);
-      setProductReviews(prev => ({
-        ...prev,
-        [productId]: reviews
-      }));
-    } catch (error) {
-      console.error('Error loading reviews:', error);
-    }
-  };
-
-  const submitReview = async (productId, reviewData) => {
-    if (!actor || !userWallet) return;
-    
-    try {
-      const review = {
-        review_id: `review_${Date.now()}_${productId}`,
-        reviewer_id: userWallet,
-        product_id: productId,
-        overall_rating: reviewData.overall_rating,
-        longevity_rating: reviewData.longevity_rating || reviewData.overall_rating,
-        sillage_rating: reviewData.sillage_rating || reviewData.overall_rating,
-        value_rating: reviewData.value_rating || reviewData.overall_rating,
-        detailed_review: reviewData.detailed_review,
-        verified_purchase: true,
-        created_at: BigInt(Date.now() * 1000000),
-      };
-      
-      await actor.create_verified_review(review);
-      await loadProductReviews(productId);
-      
-      alert('Review submitted successfully!');
-    } catch (error) {
-      console.error('Error submitting review:', error);
-      setError('Failed to submit review. Please try again.');
-    }
+    setCart([]);
+    setShowCart(false);
+    alert('Checkout successful! Check your order history.');
   };
 
   const getTotalPrice = () => {
@@ -831,31 +411,31 @@ const App = () => {
     }).format(price);
   };
 
-  const openProductDetail = async (product) => {
+  const openProductDetail = (product) => {
     setSelectedProduct(product);
-    await loadProductReviews(product.id);
     setShowProductDetail(true);
   };
 
-  const ErrorToast = () => error && (
-    <div className="error-toast">
-      <span>{error}</span>
-      <button onClick={() => setError(null)}>
-        <CustomIcons.Close />
-      </button>
-    </div>
-  );
+  const updateUserProfile = (field, value) => {
+    setUserProfile(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
-  const LoadingSpinner = () => (
-    <div className="loading-spinner">
-      <div className="spinner"></div>
-    </div>
-  );
+  const subscribeToTier = (tier) => {
+    setUserProfile(prev => ({
+      ...prev,
+      verificationTier: tier
+    }));
+    setShowSubscriptionModal(false);
+    alert(`Successfully subscribed to ${tier} tier!`);
+  };
 
   const ProductCard = ({ product, isRecommended = false, showAIBadge = false }) => (
     <div className={`product-card ${isRecommended ? 'recommended' : ''}`}>
       <div className="product-image" onClick={() => openProductDetail(product)}>
-        <img src={`https://aromance.web/${product.image_urls?.[0] || 'images/default-product.jpg'}`} alt={product.name} />
+        <img src={product.image_urls?.[0] || '/api/placeholder/300/300'} alt={product.name} />
         {showAIBadge && (
           <div className="ai-badge">
             <CustomIcons.Robot />
@@ -884,13 +464,12 @@ const App = () => {
             <span className="notes-list">{product.top_notes?.slice(0, 2).join(', ') || 'N/A'}</span>
           </div>
         </div>
-        <div className="product-price">{formatPrice(Number(product.price_idr))}</div>
-        <div className="product-stock">Stock: {Number(product.stock)}</div>
+        <div className="product-price">{formatPrice(product.price_idr)}</div>
+        <div className="product-stock">Stock: {product.stock}</div>
         <div className="product-actions">
           <button 
             className="add-to-cart-btn"
             onClick={() => addToCart(product)}
-            disabled={Number(product.stock) === 0}
           >
             <CustomIcons.Plus />
             <span>Add to Cart</span>
@@ -898,42 +477,31 @@ const App = () => {
           <button 
             className="buy-now-btn"
             onClick={() => purchaseProduct(product)}
-            disabled={checkoutLoading || Number(product.stock) === 0}
           >
-            {checkoutLoading ? <LoadingSpinner /> : 'Buy Now'}
+            Buy Now
           </button>
         </div>
       </div>
     </div>
   );
 
-  const ProductSection = ({ title, products, isRecommended = false, showAIBadge = false, icon: Icon, showRefresh = false, isLoading = false }) => (
+  const ProductSection = ({ title, products, isRecommended = false, showAIBadge = false, icon: Icon, showRefresh = false }) => (
     <div className="product-section">
       <div className="section-header">
         <h2 className="section-title">
           {Icon && <Icon />}
           {title}
-          {isLoading && <LoadingSpinner />}
         </h2>
         {showRefresh && (
-          <button 
-            className="refresh-btn" 
-            onClick={refreshOtherProducts}
-            disabled={refreshing}
-          >
+          <button className="refresh-btn" onClick={refreshOtherProducts}>
             <CustomIcons.Refresh />
-            <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+            <span>Refresh</span>
           </button>
         )}
       </div>
       <div className="products-container">
         <div className="products-scroll">
-          {isLoading ? (
-            <div className="loading-products">
-              <LoadingSpinner />
-              <p>Loading products...</p>
-            </div>
-          ) : products.length > 0 ? products.map(product => (
+          {products.length > 0 ? products.map(product => (
             <ProductCard 
               key={product.id} 
               product={product} 
@@ -942,7 +510,7 @@ const App = () => {
             />
           )) : (
             <div className="empty-products">
-              <p>No products available.</p>
+              <p>Platform sedang dalam tahap produksi.</p>
             </div>
           )}
         </div>
@@ -964,12 +532,12 @@ const App = () => {
           {selectedProduct && (
             <div className="product-detail-content">
               <div className="product-detail-image">
-                <img src={`https://aromance.web/${selectedProduct.image_urls?.[0] || 'images/default-product.jpg'}`} alt={selectedProduct.name} />
+                <img src={selectedProduct.image_urls?.[0] || '/api/placeholder/400/400'} alt={selectedProduct.name} />
               </div>
               <div className="product-detail-info">
                 <h3>{selectedProduct.brand}</h3>
                 <h2>{selectedProduct.name}</h2>
-                <div className="product-price-large">{formatPrice(Number(selectedProduct.price_idr))}</div>
+                <div className="product-price-large">{formatPrice(selectedProduct.price_idr)}</div>
                 <div className="product-details">
                   <p><strong>Fragrance Family:</strong> {selectedProduct.fragrance_family}</p>
                   <p><strong>Top Notes:</strong> {selectedProduct.top_notes?.join(', ')}</p>
@@ -977,13 +545,12 @@ const App = () => {
                   <p><strong>Base Notes:</strong> {selectedProduct.base_notes?.join(', ')}</p>
                   <p><strong>Occasions:</strong> {selectedProduct.occasion?.join(', ')}</p>
                   <p><strong>Description:</strong> {selectedProduct.description}</p>
-                  <p><strong>Stock:</strong> {Number(selectedProduct.stock)}</p>
+                  <p><strong>Stock:</strong> {selectedProduct.stock}</p>
                 </div>
                 <div className="product-actions-large">
                   <button 
                     className="add-to-cart-btn-large"
                     onClick={() => addToCart(selectedProduct)}
-                    disabled={Number(selectedProduct.stock) === 0}
                   >
                     <CustomIcons.Plus />
                     Add to Cart
@@ -991,16 +558,15 @@ const App = () => {
                   <button 
                     className="buy-now-btn-large"
                     onClick={() => purchaseProduct(selectedProduct)}
-                    disabled={checkoutLoading || Number(selectedProduct.stock) === 0}
                   >
-                    {checkoutLoading ? <LoadingSpinner /> : 'Buy Now'}
+                    Buy Now
                   </button>
                 </div>
               </div>
             </div>
           )}
           
-          {/* Reviews Section */}
+          {/* Reviews Section - Only for purchased items */}
           <div className="reviews-section">
             <h3>Reviews</h3>
             {orders.some(order => order.product.id === selectedProduct?.id) ? (
@@ -1012,44 +578,24 @@ const App = () => {
                     <CustomIcons.Star key={star} className="star-input" />
                   ))}
                 </div>
-                <button 
-                  className="submit-review-btn"
-                  onClick={() => {
-                    // TODO: Implement review submission
-                    alert('Review feature coming soon!');
-                  }}
-                >
-                  Submit Review
-                </button>
+                <button className="submit-review-btn">Submit Review</button>
               </div>
             ) : (
               <p>You can only review products you've purchased.</p>
             )}
             
             <div className="existing-reviews">
-              {productReviews[selectedProduct?.id]?.map(review => (
-                <div key={review.review_id} className="review-item">
-                  <div className="reviewer-info">
-                    <strong>{review.reviewer_id.slice(0, 8)}...</strong>
-                    <div className="rating">
-                      {[1,2,3,4,5].map(star => (
-                        <CustomIcons.Star 
-                          key={star} 
-                          className={`star ${star <= review.overall_rating ? 'filled' : ''}`} 
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p>{review.detailed_review}</p>
-                  <div className="review-date">
-                    {new Date(Number(review.created_at) / 1000000).toLocaleDateString()}
+              <div className="review-item">
+                <div className="reviewer-info">
+                  <strong>User123</strong>
+                  <div className="rating">
+                    {[1,2,3,4,5].map(star => (
+                      <CustomIcons.Star key={star} className="star filled" />
+                    ))}
                   </div>
                 </div>
-              )) || (
-                <div className="no-reviews">
-                  <p>No reviews yet. Be the first to review this product!</p>
-                </div>
-              )}
+                <p>Great fragrance! Long-lasting and perfect for daily wear.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1081,13 +627,10 @@ const App = () => {
             <div className="orders-list">
               {orders.map(order => (
                 <div key={order.id} className="order-item">
-                  <img 
-                    src={`https://aromance.web/${order.product?.image_urls?.[0] || 'images/default-product.jpg'}`} 
-                    alt={order.product?.name} 
-                  />
+                  <img src={order.product.image_urls?.[0] || '/api/placeholder/80/80'} alt={order.product.name} />
                   <div className="order-info">
-                    <h4>{order.product?.name}</h4>
-                    <p>{order.product?.brand}</p>
+                    <h4>{order.product.name}</h4>
+                    <p>{order.product.brand}</p>
                     <p>Quantity: {order.quantity}</p>
                     <p className="order-total">{formatPrice(order.total)}</p>
                     <p className="order-date">{new Date(order.date).toLocaleDateString()}</p>
@@ -1150,9 +693,8 @@ const App = () => {
                   <button 
                     className="tier-btn"
                     onClick={() => subscribeToTier('Basic Reviewer')}
-                    disabled={subscriptionLoading}
                   >
-                    {subscriptionLoading ? <LoadingSpinner /> : 'Subscribe'}
+                    Subscribe
                   </button>
                 </div>
                 
@@ -1169,9 +711,8 @@ const App = () => {
                   <button 
                     className="tier-btn"
                     onClick={() => subscribeToTier('Premium Reviewer')}
-                    disabled={subscriptionLoading}
                   >
-                    {subscriptionLoading ? <LoadingSpinner /> : 'Subscribe'}
+                    Subscribe
                   </button>
                 </div>
                 
@@ -1188,9 +729,8 @@ const App = () => {
                   <button 
                     className="tier-btn"
                     onClick={() => subscribeToTier('Elite Reviewer')}
-                    disabled={subscriptionLoading}
                   >
-                    {subscriptionLoading ? <LoadingSpinner /> : 'Subscribe'}
+                    Subscribe
                   </button>
                 </div>
               </div>
@@ -1211,9 +751,8 @@ const App = () => {
                   <button 
                     className="tier-btn"
                     onClick={() => subscribeToTier('Basic Seller')}
-                    disabled={subscriptionLoading}
                   >
-                    {subscriptionLoading ? <LoadingSpinner /> : 'Subscribe'}
+                    Subscribe
                   </button>
                 </div>
                 
@@ -1230,9 +769,8 @@ const App = () => {
                   <button 
                     className="tier-btn"
                     onClick={() => subscribeToTier('Premium Seller')}
-                    disabled={subscriptionLoading}
                   >
-                    {subscriptionLoading ? <LoadingSpinner /> : 'Subscribe'}
+                    Subscribe
                   </button>
                 </div>
                 
@@ -1249,9 +787,8 @@ const App = () => {
                   <button 
                     className="tier-btn"
                     onClick={() => subscribeToTier('Elite Seller')}
-                    disabled={subscriptionLoading}
                   >
-                    {subscriptionLoading ? <LoadingSpinner /> : 'Subscribe'}
+                    Subscribe
                   </button>
                 </div>
               </div>
@@ -1278,13 +815,13 @@ const App = () => {
         </div>
         <div className="modal-body">
           {/* Profile Section */}
-          {walletConnected && userProfile && (
+          {walletConnected && (
             <div className="settings-section">
               <h3>Profile</h3>
               <div className="profile-edit">
                 <div className="profile-image-edit">
                   <img 
-                    src={userProfile.profile_image || './src/log1_.png'} 
+                    src={userProfile.profileImage || '/api/placeholder/100/100'} 
                     alt="Profile" 
                     className="profile-image"
                   />
@@ -1296,13 +833,10 @@ const App = () => {
                   <label>Username:</label>
                   <input 
                     type="text"
-                    value={tempUsername}
-                    onChange={(e) => setTempUsername(e.target.value)}
+                    value={userProfile.username}
+                    onChange={(e) => updateUserProfile('username', e.target.value)}
                     placeholder="Enter username"
                   />
-                  <button className="save-profile-btn" onClick={saveUserProfile}>
-                    Save Profile
-                  </button>
                   {userProfile.verificationTier && (
                     <div className="verification-badge">
                       <CustomIcons.Crown />
@@ -1355,10 +889,9 @@ const App = () => {
               <button 
                 className="setting-btn" 
                 onClick={startAIConsultation}
-                disabled={!walletConnected || consultationLoading}
+                disabled={!walletConnected}
               >
-                <CustomIcons.Robot /> 
-                {consultationLoading ? <LoadingSpinner /> : 'Start AI Consultation & Create Identity'}
+                <CustomIcons.Robot /> Start AI Consultation & Create Identity
               </button>
             ) : (
               <div className="setting-item">
@@ -1450,28 +983,19 @@ const App = () => {
               </div>
 
               <div className="consultation-status">
-                <p>🤖 Connecting to AI Consultation System...</p>
-                <p>🔍 Preparing personality analysis...</p>
-                <p>✨ Setting up recommendation engine...</p>
-                {consultationLoading && (
-                  <div className="loading-bar">
-                    <div className="loading-progress"></div>
-                  </div>
-                )}
+                <p>🤖 AI Consultation System Ready...</p>
+                <p>🔐 Creating your Decentralized Identity...</p>
+                <p>✨ Preparing personalized recommendations...</p>
+                <div className="loading-bar">
+                  <div className="loading-progress"></div>
+                </div>
               </div>
 
               <button 
                 className="consultation-btn"
-                onClick={() => completeConsultation({
-                  lifestyle: 'modern',
-                  fragrance_families: ['fresh', 'floral'],
-                  budget_range: 'moderate',
-                  personality_traits: ['confident', 'elegant'],
-                  occasions: ['daily_work', 'evening_date']
-                })}
-                disabled={consultationLoading}
+                onClick={completeConsultation}
               >
-                {consultationLoading ? <LoadingSpinner /> : 'Complete AI Consultation'}
+                Complete AI Consultation
               </button>
             </div>
           </div>
@@ -1507,15 +1031,11 @@ const App = () => {
               <div className="cart-items">
                 {cart.map(item => (
                   <div key={item.id} className="cart-item">
-                    <img 
-                      src={`https://aromance.web/${item.image_urls?.[0] || 'images/default-product.jpg'}`} 
-                      alt={item.name} 
-                      className="cart-item-image" 
-                    />
+                    <img src={item.image_urls?.[0] || '/api/placeholder/80/80'} alt={item.name} className="cart-item-image" />
                     <div className="cart-item-info">
                       <h4>{item.name}</h4>
                       <p>{item.brand}</p>
-                      <p className="cart-item-price">{formatPrice(Number(item.price_idr))}</p>
+                      <p className="cart-item-price">{formatPrice(item.price_idr)}</p>
                     </div>
                     <div className="cart-item-controls">
                       <button onClick={() => updateCartQuantity(item.id, item.quantity - 1)}>
@@ -1538,13 +1058,9 @@ const App = () => {
               <div className="cart-total">
                 <h3>Total: {formatPrice(getTotalPrice())}</h3>
                 <p>Payment to: {MAIN_WALLET_ADDRESS.slice(0, 20)}...</p>
-                <button 
-                  className="checkout-btn" 
-                  onClick={checkout}
-                  disabled={checkoutLoading}
-                >
+                <button className="checkout-btn" onClick={checkout}>
                   <CustomIcons.Wallet />
-                  {checkoutLoading ? <LoadingSpinner /> : 'Checkout with Plug Wallet'}
+                  Checkout with Plug Wallet
                 </button>
               </div>
             </>
@@ -1561,7 +1077,7 @@ const App = () => {
           <div className="loading-logo">
             <img src="./src/log1_.png" alt="Aromance" style={{ width: "67px", height: "67px" }} />
           </div>
-          <div className="loading-text">Loading Aromance...</div>
+          <div className="loading-text">Loading The App..</div>
           <div className="loading-bar">
             <div className="loading-progress"></div>
           </div>
@@ -1572,8 +1088,6 @@ const App = () => {
 
   return (
     <div className={`app ${isDarkMode ? 'dark-mode' : ''}`}>
-      <ErrorToast />
-      
       {/* Navbar */}
       <nav className="navbar">
         <div className="navbar-content">
@@ -1628,26 +1142,20 @@ const App = () => {
           <div className="welcome-section">
             <h1>Get Started with AI Consultation</h1>
             <p>Let our AI analyze your personality and find the perfect fragrance for you</p>
-            <button 
-              className="cta-button" 
-              onClick={startAIConsultation}
-              disabled={consultationLoading}
-            >
-              <CustomIcons.Robot /> 
-              {consultationLoading ? <LoadingSpinner /> : 'Start AI Consultation'}
+            <button className="cta-button" onClick={startAIConsultation}>
+              <CustomIcons.Robot /> Start AI Consultation
             </button>
           </div>
         )}
 
         {/* AI Recommendations Section */}
-        {consultationCompleted && (
+        {consultationCompleted && aiRecommendations.length > 0 && (
           <ProductSection 
             title="AI Recommendations for You"
             products={aiRecommendations}
             isRecommended={true}
             showAIBadge={true}
             icon={CustomIcons.Robot}
-            isLoading={recommendationsLoading}
           />
         )}
 

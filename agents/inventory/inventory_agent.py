@@ -26,10 +26,41 @@ class StockAlert(Model):
     recommended_restock: int
     urgency_level: str
 
-class InventoryHTTPRequest(BaseModel):
+# NEW: REST endpoint models using new uAgents syntax
+class InventoryActionRequest(Model):
     user_id: str
     product_ids: List[str]
     action: str
+    quantity: Optional[int] = 1
+
+class InventoryActionResponse(Model):
+    success: bool
+    availability: Optional[Dict[str, Any]] = None
+    reservation: Optional[Dict[str, Any]] = None
+    release: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+class SellerInventoryResponse(Model):
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+class InventoryAlertsResponse(Model):
+    success: bool
+    alerts: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+class InventoryRecommendationsResponse(Model):
+    success: bool
+    recommendations: Optional[List[Dict[str, Any]]] = None
+    error: Optional[str] = None
+
+class HealthCheckResponse(Model):
+    status: str
+    total_products: int
+    low_stock_products: int
+    icp_connected: bool
+    timestamp: float
 
 inventory_agent = Agent(
     name="aromance_inventory_ai",
@@ -150,43 +181,60 @@ async def startup_handler(ctx: Context):
     # Perform initial stock check
     await perform_stock_health_check(ctx)
 
-# HTTP Endpoints
-@inventory_agent.on_rest_post("/inventory")
-async def inventory_action_endpoint(ctx: Context, req):
+# FIXED: HTTP Endpoints using new uAgents syntax
+@inventory_agent.on_rest_post("/inventory", InventoryActionRequest, InventoryActionResponse)
+async def inventory_action_endpoint(ctx: Context, req: InventoryActionRequest) -> InventoryActionResponse:
     """HTTP endpoint for inventory actions"""
     try:
-        data = await req.json()
-        user_id = data.get("user_id")
-        product_ids = data.get("product_ids", [])
-        action = data.get("action", "check_availability")
+        user_id = req.user_id
+        product_ids = req.product_ids
+        action = req.action
+        quantity = req.quantity or 1
         
         if not user_id:
-            return {"error": "user_id is required"}, 400
+            return InventoryActionResponse(
+                success=False,
+                error="user_id is required"
+            )
         
         ctx.logger.info(f"📦 Inventory {action} for user {user_id}: {product_ids}")
         
         if action == "check_availability":
             availability_result = await check_product_availability(ctx, product_ids)
-            return {"success": True, "availability": availability_result}
+            return InventoryActionResponse(
+                success=True,
+                availability=availability_result
+            )
             
         elif action == "reserve_products":
-            quantity = data.get("quantity", 1)
             reservation_result = await reserve_products(ctx, product_ids, quantity, user_id)
-            return {"success": True, "reservation": reservation_result}
+            return InventoryActionResponse(
+                success=True,
+                reservation=reservation_result
+            )
             
         elif action == "release_reservation":
             release_result = await release_product_reservation(ctx, product_ids, user_id)
-            return {"success": True, "release": release_result}
+            return InventoryActionResponse(
+                success=True,
+                release=release_result
+            )
         
         else:
-            return {"error": f"Unknown action: {action}"}, 400
+            return InventoryActionResponse(
+                success=False,
+                error=f"Unknown action: {action}"
+            )
             
     except Exception as e:
         ctx.logger.error(f"❌ Inventory action error: {e}")
-        return {"error": "Internal server error"}, 500
+        return InventoryActionResponse(
+            success=False,
+            error="Internal server error"
+        )
 
-@inventory_agent.on_rest_get("/inventory/seller/{seller_id}")
-async def get_seller_inventory_endpoint(ctx: Context, req):
+@inventory_agent.on_rest_get("/inventory/seller/{seller_id}", SellerInventoryResponse)
+async def get_seller_inventory_endpoint(ctx: Context, req) -> SellerInventoryResponse:
     """Get inventory for a specific seller"""
     try:
         seller_id = req.path_params.get("seller_id")
@@ -201,22 +249,25 @@ async def get_seller_inventory_endpoint(ctx: Context, req):
         low_stock_alerts = generate_stock_alerts(seller_products)
         recommendations = generate_inventory_recommendations(seller_products)
         
-        return {
-            "success": True,
-            "data": {
+        return SellerInventoryResponse(
+            success=True,
+            data={
                 "products": seller_products,
                 "total_count": len(seller_products),
                 "low_stock_alerts": low_stock_alerts,
                 "recommendations": recommendations
             }
-        }
+        )
         
     except Exception as e:
         ctx.logger.error(f"❌ Seller inventory error: {e}")
-        return {"error": "Internal server error"}, 500
+        return SellerInventoryResponse(
+            success=False,
+            error="Internal server error"
+        )
 
-@inventory_agent.on_rest_get("/inventory/alerts")
-async def get_inventory_alerts_endpoint(ctx: Context, req):
+@inventory_agent.on_rest_get("/inventory/alerts", InventoryAlertsResponse)
+async def get_inventory_alerts_endpoint(ctx: Context, req) -> InventoryAlertsResponse:
     """Get all inventory alerts"""
     try:
         all_products = list(inventory_database.values())
@@ -244,21 +295,24 @@ async def get_inventory_alerts_endpoint(ctx: Context, req):
                     "message": f"LOW STOCK: {product['name']} - {product['stock_quantity']} remaining"
                 })
         
-        return {
-            "success": True,
-            "alerts": {
+        return InventoryAlertsResponse(
+            success=True,
+            alerts={
                 "critical": critical_alerts,
                 "warning": warning_alerts,
                 "summary": alerts
             }
-        }
+        )
         
     except Exception as e:
         ctx.logger.error(f"❌ Inventory alerts error: {e}")
-        return {"error": "Internal server error"}, 500
+        return InventoryAlertsResponse(
+            success=False,
+            error="Internal server error"
+        )
 
-@inventory_agent.on_rest_get("/inventory/recommendations")
-async def get_inventory_recommendations_endpoint(ctx: Context, req):
+@inventory_agent.on_rest_get("/inventory/recommendations", InventoryRecommendationsResponse)
+async def get_inventory_recommendations_endpoint(ctx: Context, req) -> InventoryRecommendationsResponse:
     """Get inventory management recommendations"""
     try:
         all_products = list(inventory_database.values())
@@ -274,28 +328,42 @@ async def get_inventory_recommendations_endpoint(ctx: Context, req):
                 "category": categorize_recommendation(rec)
             })
         
-        return {
-            "success": True,
-            "recommendations": enhanced_recommendations
-        }
+        return InventoryRecommendationsResponse(
+            success=True,
+            recommendations=enhanced_recommendations
+        )
         
     except Exception as e:
         ctx.logger.error(f"❌ Inventory recommendations error: {e}")
-        return {"error": "Internal server error"}, 500
+        return InventoryRecommendationsResponse(
+            success=False,
+            error="Internal server error"
+        )
 
-@inventory_agent.on_rest_get("/health")
-async def health_check_endpoint(ctx: Context, req):
+@inventory_agent.on_rest_get("/health", HealthCheckResponse)
+async def health_check_endpoint(ctx: Context, req) -> HealthCheckResponse:
     """Health check endpoint"""
-    total_products = len(inventory_database)
-    low_stock_count = sum(1 for p in inventory_database.values() if p["stock_quantity"] <= p["min_stock_threshold"])
-    
-    return {
-        "status": "healthy",
-        "total_products": total_products,
-        "low_stock_products": low_stock_count,
-        "icp_connected": await test_icp_connection(ctx),
-        "timestamp": datetime.now().timestamp()
-    }
+    try:
+        total_products = len(inventory_database)
+        low_stock_count = sum(1 for p in inventory_database.values() if p["stock_quantity"] <= p["min_stock_threshold"])
+        icp_connected = await test_icp_connection(ctx)
+        
+        return HealthCheckResponse(
+            status="healthy",
+            total_products=total_products,
+            low_stock_products=low_stock_count,
+            icp_connected=icp_connected,
+            timestamp=datetime.now().timestamp()
+        )
+    except Exception as e:
+        ctx.logger.error(f"❌ Health check error: {e}")
+        return HealthCheckResponse(
+            status="error",
+            total_products=0,
+            low_stock_products=0,
+            icp_connected=False,
+            timestamp=datetime.now().timestamp()
+        )
 
 # Agent Message Handling
 @inventory_agent.on_message(model=InventoryUpdate)

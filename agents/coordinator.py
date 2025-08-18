@@ -32,6 +32,28 @@ class ICPResponse(Model):
     result: Any = None
     error: Optional[str] = None
 
+# NEW: REST endpoint models using new uAgents syntax
+class ConsultationStartRequest(Model):
+    user_id: str
+
+class ConsultationStartResponse(Model):
+    success: bool
+    session_id: str
+    data: Dict[str, Any] = {}
+    error: Optional[str] = None
+
+class SystemHealthResponse(Model):
+    status: str
+    agents: Dict[str, Any]
+    metrics: Dict[str, Any]
+    icp_network: str
+    timestamp: float
+
+class SystemMetricsResponse(Model):
+    metrics: Dict[str, Any]
+    active_sessions: int
+    timestamp: float
+
 # Enhanced Coordinator Agent
 coordinator_agent = Agent(
     name="aromance_system_coordinator",
@@ -140,7 +162,7 @@ async def orchestrate_user_flow(ctx: Context, journey: UserJourney) -> bool:
     
     try:
         if stage == "consultation_complete":
-            ctx.logger.info(f"🔄 Routing to recommendation agent for {journey.user_id}")
+            ctx.logger.info(f"📄 Routing to recommendation agent for {journey.user_id}")
             
             # Create DID in ICP backend first
             did_result = await sync_create_decentralized_identity(ctx, journey)
@@ -449,16 +471,19 @@ async def perform_system_health_check(ctx: Context):
     health_percentage = len(healthy_agents) / len(AGENT_REGISTRY) * 100
     ctx.logger.info(f"🏥 System Health: {len(healthy_agents)}/{len(AGENT_REGISTRY)} agents ({health_percentage:.1f}%)")
 
-# HTTP Endpoints for Frontend Integration
-@coordinator_agent.on_rest_post("/api/consultation/start")
-async def start_consultation_endpoint(ctx: Context, req):
+# FIXED: HTTP Endpoints using new uAgents syntax
+@coordinator_agent.on_rest_post("/api/consultation/start", ConsultationStartRequest, ConsultationStartResponse)
+async def start_consultation_endpoint(ctx: Context, req: ConsultationStartRequest) -> ConsultationStartResponse:
     """HTTP endpoint to start consultation process"""
     try:
-        data = await req.json()
-        user_id = data.get("user_id")
+        user_id = req.user_id
         
         if not user_id:
-            return {"error": "user_id is required"}, 400
+            return ConsultationStartResponse(
+                success=False,
+                session_id="",
+                error="user_id is required"
+            )
         
         session_id = f"session_{user_id}_{int(datetime.now().timestamp())}"
         
@@ -479,38 +504,56 @@ async def start_consultation_endpoint(ctx: Context, req):
             ) as response:
                 if response.status == 200:
                     result = await response.json()
-                    return {"success": True, "session_id": session_id, "data": result}
+                    return ConsultationStartResponse(
+                        success=True,
+                        session_id=session_id,
+                        data=result
+                    )
                 else:
-                    return {"error": "Consultation agent unavailable"}, 503
+                    return ConsultationStartResponse(
+                        success=False,
+                        session_id="",
+                        error="Consultation agent unavailable"
+                    )
                     
     except Exception as e:
         ctx.logger.error(f"❌ Consultation start error: {e}")
-        return {"error": "Internal server error"}, 500
+        return ConsultationStartResponse(
+            success=False,
+            session_id="",
+            error="Internal server error"
+        )
 
-@coordinator_agent.on_rest_get("/api/system/health")
-async def system_health_endpoint(ctx: Context, req):
+@coordinator_agent.on_rest_get("/api/system/health", SystemHealthResponse)
+async def system_health_endpoint(ctx: Context) -> SystemHealthResponse:
     """HTTP endpoint for system health"""
     try:
         await perform_system_health_check(ctx)
         
-        return {
-            "status": "healthy",
-            "agents": AGENT_REGISTRY,
-            "metrics": system_metrics,
-            "icp_network": ICP_CONFIG["current_network"],
-            "timestamp": datetime.now().timestamp()
-        }
+        return SystemHealthResponse(
+            status="healthy",
+            agents=AGENT_REGISTRY,
+            metrics=system_metrics,
+            icp_network=ICP_CONFIG["current_network"],
+            timestamp=datetime.now().timestamp()
+        )
     except Exception as e:
-        return {"error": str(e)}, 500
+        return SystemHealthResponse(
+            status="error",
+            agents={},
+            metrics={},
+            icp_network="unknown",
+            timestamp=datetime.now().timestamp()
+        )
 
-@coordinator_agent.on_rest_get("/api/system/metrics")
-async def system_metrics_endpoint(ctx: Context, req):
+@coordinator_agent.on_rest_get("/api/system/metrics", SystemMetricsResponse)
+async def system_metrics_endpoint(ctx: Context) -> SystemMetricsResponse:
     """HTTP endpoint for system metrics"""
-    return {
-        "metrics": system_metrics,
-        "active_sessions": len(active_sessions),
-        "timestamp": datetime.now().timestamp()
-    }
+    return SystemMetricsResponse(
+        metrics=system_metrics,
+        active_sessions=len(active_sessions),
+        timestamp=datetime.now().timestamp()
+    )
 
 @coordinator_agent.on_interval(period=300.0)  # Every 5 minutes
 async def periodic_maintenance(ctx: Context):

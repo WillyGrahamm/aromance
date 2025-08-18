@@ -3,10 +3,36 @@ from typing import List, Dict, Any, Optional
 import json
 import aiohttp
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 
-# Enhanced Models
+# Updated Models for uAgents REST API
+class ConsultationStartRequest(Model):
+    user_id: str
+    session_id: str
+
+class ConsultationStartResponse(Model):
+    success: bool
+    response: Dict[str, Any]
+
+class ConsultationMessageRequest(Model):
+    user_id: str
+    session_id: str
+    message: str
+
+class ConsultationMessageResponse(Model):
+    success: bool
+    response: Dict[str, Any]
+
+class ProfileResponse(Model):
+    success: bool
+    profile: Optional[Dict[str, Any]]
+
+class HealthResponse(Model):
+    status: str
+    active_sessions: int
+    created_profiles: int
+    timestamp: float
+
+# Enhanced Models (unchanged)
 class ChatMessage(Model):
     user_id: str
     session_id: str
@@ -33,24 +59,14 @@ class FragranceProfile(Model):
     budget_range: str
     scent_journey: List[Dict[str, Any]]
 
-class ConsultationStartRequest(BaseModel):
-    user_id: str
-    session_id: str
-
-class ConsultationMessageRequest(BaseModel):
-    user_id: str
-    session_id: str
-    message: str
-
 consultation_agent = Agent(
     name="aromance_consultation_ai",
     port=8001,
     seed="aromance_consultation_enhanced_2025",
-    endpoint=["http://127.0.0.1:8001/submit"],
-    mailbox=True,
+    endpoint=["http://127.0.0.1:8001/submit"]
 )
 
-# Enhanced Indonesian Fragrance Knowledge Base
+# Enhanced Indonesian Fragrance Knowledge Base (unchanged)
 FRAGRANCE_FAMILIES = {
     "fresh": {
         "aliases": ["fresh", "segar", "bersih", "light", "ringan", "citrus"],
@@ -106,26 +122,25 @@ FRAGRANCE_FAMILIES = {
 user_sessions = {}
 fragrance_profiles = {}
 
-# FastAPI integration for HTTP endpoints
-app = FastAPI()
-
 @consultation_agent.on_event("startup")
 async def startup_handler(ctx: Context):
     ctx.logger.info("🌸 Aromance Enhanced Consultation Agent Started")
     ctx.logger.info(f"Agent Address: {consultation_agent.address}")
     ctx.logger.info("Ready for intelligent fragrance consultation with full integration! 🇮🇩")
 
-# HTTP Endpoints
-@consultation_agent.on_rest_post("/consultation/start")
-async def start_consultation_endpoint(ctx: Context, req):
+# Fixed REST Endpoints using new uAgents syntax
+@consultation_agent.on_rest_post("/consultation/start", ConsultationStartRequest, ConsultationStartResponse)
+async def start_consultation_endpoint(ctx: Context, req: ConsultationStartRequest) -> ConsultationStartResponse:
     """HTTP endpoint to start consultation"""
     try:
-        data = await req.json()
-        user_id = data.get("user_id")
-        session_id = data.get("session_id")
+        user_id = req.user_id
+        session_id = req.session_id
         
         if not user_id or not session_id:
-            return {"error": "user_id and session_id are required"}, 400
+            return ConsultationStartResponse(
+                success=False,
+                response={"error": "user_id and session_id are required"}
+            )
         
         # Initialize session
         user_sessions[session_id] = {
@@ -139,44 +154,52 @@ async def start_consultation_endpoint(ctx: Context, req):
         }
         
         # Generate welcome response
-        response = ChatResponse(
-            user_id=user_id,
-            session_id=session_id,
-            response="Hello! 🌸 I'm your Aromance AI consultant specializing in Indonesian fragrance culture. I'll help you discover the perfect scent that matches your personality and lifestyle. Let's start - do you have any favorite scents or perfumes you've tried before?",
-            follow_up_questions=[
+        response_data = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "response": "Hello! 🌸 I'm your Aromance AI consultant specializing in Indonesian fragrance culture. I'll help you discover the perfect scent that matches your personality and lifestyle. Let's start - do you have any favorite scents or perfumes you've tried before?",
+            "follow_up_questions": [
                 "Tell me about your favorite perfume experience",
                 "I'm new to perfumes, help me explore",
                 "I prefer fresh and light fragrances",
                 "I like long-lasting, bold scents"
             ],
-            data_collected={},
-            consultation_progress=0.1,
-            next_step="fragrance_preference_discovery"
-        )
-        
-        return {
-            "success": True,
-            "response": response.dict()
+            "data_collected": {},
+            "consultation_progress": 0.1,
+            "next_step": "fragrance_preference_discovery"
         }
+        
+        return ConsultationStartResponse(
+            success=True,
+            response=response_data
+        )
         
     except Exception as e:
         ctx.logger.error(f"❌ Consultation start error: {e}")
-        return {"error": "Internal server error"}, 500
+        return ConsultationStartResponse(
+            success=False,
+            response={"error": "Internal server error"}
+        )
 
-@consultation_agent.on_rest_post("/consultation/message")
-async def consultation_message_endpoint(ctx: Context, req):
+@consultation_agent.on_rest_post("/consultation/message", ConsultationMessageRequest, ConsultationMessageResponse)
+async def consultation_message_endpoint(ctx: Context, req: ConsultationMessageRequest) -> ConsultationMessageResponse:
     """HTTP endpoint for consultation messages"""
     try:
-        data = await req.json()
-        user_id = data.get("user_id")
-        session_id = data.get("session_id")
-        message = data.get("message")
+        user_id = req.user_id
+        session_id = req.session_id
+        message = req.message
         
         if not all([user_id, session_id, message]):
-            return {"error": "user_id, session_id, and message are required"}, 400
+            return ConsultationMessageResponse(
+                success=False,
+                response={"error": "user_id, session_id, and message are required"}
+            )
         
         if session_id not in user_sessions:
-            return {"error": "Session not found"}, 404
+            return ConsultationMessageResponse(
+                success=False,
+                response={"error": "Session not found"}
+            )
         
         # Process message
         chat_message = ChatMessage(
@@ -200,45 +223,29 @@ async def consultation_message_endpoint(ctx: Context, req):
             "focus": session["current_focus"]
         })
         
-        return {
-            "success": True,
-            "response": response.dict()
-        }
+        return ConsultationMessageResponse(
+            success=True,
+            response=response.dict()
+        )
         
     except Exception as e:
         ctx.logger.error(f"❌ Consultation message error: {e}")
-        return {"error": "Internal server error"}, 500
+        return ConsultationMessageResponse(
+            success=False,
+            response={"error": "Internal server error"}
+        )
 
-@consultation_agent.on_rest_get("/consultation/profile/{user_id}")
-async def get_consultation_profile_endpoint(ctx: Context, req):
-    """HTTP endpoint to get user's fragrance profile"""
-    try:
-        user_id = req.path_params.get("user_id")
-        
-        if user_id in fragrance_profiles:
-            profile = fragrance_profiles[user_id]
-            return {
-                "success": True,
-                "profile": profile.dict()
-            }
-        else:
-            return {"error": "Profile not found"}, 404
-            
-    except Exception as e:
-        ctx.logger.error(f"❌ Profile retrieval error: {e}")
-        return {"error": "Internal server error"}, 500
-
-@consultation_agent.on_rest_get("/health")
-async def health_check_endpoint(ctx: Context, req):
+@consultation_agent.on_rest_get("/health", HealthResponse)
+async def health_check_endpoint(ctx: Context) -> HealthResponse:
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "active_sessions": len(user_sessions),
-        "created_profiles": len(fragrance_profiles),
-        "timestamp": datetime.now().timestamp()
-    }
+    return HealthResponse(
+        status="healthy",
+        active_sessions=len(user_sessions),
+        created_profiles=len(fragrance_profiles),
+        timestamp=datetime.now().timestamp()
+    )
 
-# Agent Message Handling
+# Agent Message Handling (unchanged)
 @consultation_agent.on_message(model=ChatMessage)
 async def handle_chat_consultation(ctx: Context, sender: str, msg: ChatMessage):
     ctx.logger.info(f"💬 Chat from user {msg.user_id}: {msg.message}")
