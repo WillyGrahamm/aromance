@@ -2,7 +2,7 @@ from uagents import Agent, Context, Model
 from typing import Dict, List, Any, Optional
 import json
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel
 
 class InventoryUpdate(Model):
@@ -67,58 +67,87 @@ inventory_agent = Agent(
     port=8005,
     seed="aromance_inventory_enhanced_2025",
     endpoint=["http://127.0.0.1:8005/submit"],
-    mailbox=True,
 )
 
 # Enhanced inventory database - synced with recommendation agent
 inventory_database = {
     "IDN_001": {
         "product_id": "IDN_001",
-        "seller_id": "wardah_official",
-        "name": "Wardah Scentsations Wonder Bloom",
-        "brand": "Wardah",
-        "price_idr": 89000,
-        "fragrance_family": "floral",
-        "stock_quantity": 150,
+        "seller_id": "hmns_official",
+        "name": "Orgsm (Orgasm)",
+        "brand": "HMNS",
+        "price_idr": 365000,
+        "fragrance_family": "gourmand",
+        "stock_quantity": 100,
         "min_stock_threshold": 20,
-        "max_stock_capacity": 500,
-        "reserved_quantity": 5,
-        "available_quantity": 145,
-        "last_restocked": int(datetime.now().timestamp()) - 86400 * 7,  # 7 days ago
+        "max_stock_capacity": 400,
+        "reserved_quantity": 8,
+        "available_quantity": 92,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 10,  # 10 days ago
         "supplier_info": {
-            "supplier_name": "PT Wardah Kosmetik Indonesia",
-            "lead_time_days": 14,
-            "minimum_order_quantity": 50
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 30
         },
         "sales_velocity": {
-            "daily_avg": 3.2,
-            "weekly_avg": 22.4,
-            "monthly_avg": 89.6
+            "daily_avg": 3.5,
+            "weekly_avg": 24.5,
+            "monthly_avg": 98.0
         },
         "seasonal_demand": {
-            "high_season": ["march", "april", "may", "june"],
-            "low_season": ["august", "september"]
+            "high_season": ["february", "march", "december"],
+            "low_season": ["july", "august"]
         },
         "location": "Jakarta Warehouse",
         "status": "active"
     },
     "IDN_002": {
         "product_id": "IDN_002",
-        "seller_id": "esqa_official",
-        "name": "Esqa Natural Bergamot & Neroli",
-        "brand": "Esqa",
-        "price_idr": 165000,
-        "fragrance_family": "fresh",
+        "seller_id": "hmns_official",
+        "name": "Darker Shade of Orgsm",
+        "brand": "HMNS",
+        "price_idr": 380000,
+        "fragrance_family": "gourmand",
         "stock_quantity": 75,
         "min_stock_threshold": 15,
-        "max_stock_capacity": 200,
-        "reserved_quantity": 3,
-        "available_quantity": 72,
-        "last_restocked": int(datetime.now().timestamp()) - 86400 * 5,  # 5 days ago
+        "max_stock_capacity": 350,
+        "reserved_quantity": 6,
+        "available_quantity": 69,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 5,
         "supplier_info": {
-            "supplier_name": "Esqa Beauty Indonesia",
-            "lead_time_days": 10,
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 14,
             "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.8,
+            "weekly_avg": 19.6,
+            "monthly_avg": 78.4
+        },
+        "seasonal_demand": {
+            "high_season": ["november", "december"],
+            "low_season": ["april", "may"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_003": {
+        "product_id": "IDN_003",
+        "seller_id": "onix_official",
+        "name": "FWB",
+        "brand": "Onix Fragrance",
+        "price_idr": 250000,
+        "fragrance_family": "fruity",
+        "stock_quantity": 60,
+        "min_stock_threshold": 10,
+        "max_stock_capacity": 250,
+        "reserved_quantity": 4,
+        "available_quantity": 56,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 3,
+        "supplier_info": {
+            "supplier_name": "PT Onix Aroma",
+            "lead_time_days": 10,
+            "minimum_order_quantity": 40
         },
         "sales_velocity": {
             "daily_avg": 2.1,
@@ -126,41 +155,941 @@ inventory_database = {
             "monthly_avg": 58.8
         },
         "seasonal_demand": {
-            "high_season": ["june", "july", "august"],
-            "low_season": ["november", "december", "january"]
+            "high_season": ["june", "july"],
+            "low_season": ["january", "february"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+    "IDN_004": {
+        "product_id": "IDN_004",
+        "seller_id": "oullu_official",
+        "name": "Zephyr",
+        "brand": "Oullu",
+        "price_idr": 295000,
+        "fragrance_family": "fresh",
+        "stock_quantity": 137,
+        "min_stock_threshold": 25,
+        "max_stock_capacity": 500,
+        "reserved_quantity": 7,
+        "available_quantity": 130,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 15,
+        "supplier_info": {
+            "supplier_name": "Oullu Fragrance Co.",
+            "lead_time_days": 18,
+            "minimum_order_quantity": 60
+        },
+        "sales_velocity": {
+            "daily_avg": 3.9,
+            "weekly_avg": 27.3,
+            "monthly_avg": 109.2
+        },
+        "seasonal_demand": {
+            "high_season": ["april", "may", "june"],
+            "low_season": ["october", "november"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_005": {
+        "product_id": "IDN_005",
+        "seller_id": "hmns_official",
+        "name": "Alpha",
+        "brand": "HMNS",
+        "price_idr": 355000,
+        "fragrance_family": "fresh",
+        "stock_quantity": 152,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 500,
+        "reserved_quantity": 9,
+        "available_quantity": 143,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 12,
+        "supplier_info": {
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 40
+        },
+        "sales_velocity": {
+            "daily_avg": 4.2,
+            "weekly_avg": 29.4,
+            "monthly_avg": 117.6
+        },
+        "seasonal_demand": {
+            "high_season": ["january", "march", "august"],
+            "low_season": ["october"]
         },
         "location": "Surabaya Warehouse",
         "status": "active"
     },
-    "IDN_003": {
-        "product_id": "IDN_003",
-        "seller_id": "makeover_official",
-        "name": "Make Over Eau De Toilette Blooming Garden",
-        "brand": "Make Over",
-        "price_idr": 175000,
-        "fragrance_family": "floral",
-        "stock_quantity": 8,  # Low stock for testing alerts
-        "min_stock_threshold": 10,
-        "max_stock_capacity": 150,
-        "reserved_quantity": 2,
-        "available_quantity": 6,
-        "last_restocked": int(datetime.now().timestamp()) - 86400 * 12,  # 12 days ago
+    "IDN_006": {
+        "product_id": "IDN_006",
+        "seller_id": "carlclaire_official",
+        "name": "Pure Grace",
+        "brand": "Carl & Claire",
+        "price_idr": 420000,
+        "fragrance_family": "fresh",
+        "stock_quantity": 128,
+        "min_stock_threshold": 30,
+        "max_stock_capacity": 400,
+        "reserved_quantity": 6,
+        "available_quantity": 122,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 9,
         "supplier_info": {
-            "supplier_name": "Make Over Indonesia",
-            "lead_time_days": 7,
+            "supplier_name": "Carl & Claire Indonesia",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 35
+        },
+        "sales_velocity": {
+            "daily_avg": 3.7,
+            "weekly_avg": 25.9,
+            "monthly_avg": 103.6
+        },
+        "seasonal_demand": {
+            "high_season": ["march", "april"],
+            "low_season": ["september"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_007": {
+        "product_id": "IDN_007",
+        "seller_id": "onix_official",
+        "name": "Morning Dew",
+        "brand": "Onix Fragrance",
+        "price_idr": 265000,
+        "fragrance_family": "fresh",
+        "stock_quantity": 173,
+        "min_stock_threshold": 25,
+        "max_stock_capacity": 450,
+        "reserved_quantity": 10,
+        "available_quantity": 163,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 20,
+        "supplier_info": {
+            "supplier_name": "PT Onix Aroma",
+            "lead_time_days": 15,
+            "minimum_order_quantity": 50
+        },
+        "sales_velocity": {
+            "daily_avg": 4.1,
+            "weekly_avg": 28.7,
+            "monthly_avg": 114.8
+        },
+        "seasonal_demand": {
+            "high_season": ["april", "may", "november"],
+            "low_season": ["august"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+    "IDN_008": {
+        "product_id": "IDN_008",
+        "seller_id": "saffco_official",
+        "name": "Azure",
+        "brand": "Saff & Co.",
+        "price_idr": 360000,
+        "fragrance_family": "fresh",
+        "stock_quantity": 199,
+        "min_stock_threshold": 30,
+        "max_stock_capacity": 500,
+        "reserved_quantity": 12,
+        "available_quantity": 187,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 6,
+        "supplier_info": {
+            "supplier_name": "Saff & Co. Indonesia",
+            "lead_time_days": 16,
+            "minimum_order_quantity": 45
+        },
+        "sales_velocity": {
+            "daily_avg": 5.0,
+            "weekly_avg": 35.0,
+            "monthly_avg": 140.0
+        },
+        "seasonal_demand": {
+            "high_season": ["june", "july", "december"],
+            "low_season": ["february"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_009": {
+        "product_id": "IDN_009",
+        "seller_id": "oullu_official",
+        "name": "Deep Dive",
+        "brand": "Oullu",
+        "price_idr": 310000,
+        "fragrance_family": "fresh",
+        "stock_quantity": 165,
+        "min_stock_threshold": 25,
+        "max_stock_capacity": 500,
+        "reserved_quantity": 9,
+        "available_quantity": 156,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 11,
+        "supplier_info": {
+            "supplier_name": "Oullu Fragrance Co.",
+            "lead_time_days": 15,
+            "minimum_order_quantity": 40
+        },
+        "sales_velocity": {
+            "daily_avg": 3.8,
+            "weekly_avg": 26.6,
+            "monthly_avg": 106.4
+        },
+        "seasonal_demand": {
+            "high_season": ["april", "may", "august"],
+            "low_season": ["october"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_010": {
+        "product_id": "IDN_010",
+        "seller_id": "mineperfumery_official",
+        "name": "Vetiver Dawn",
+        "brand": "Mine Perfumery",
+        "price_idr": 290000,
+        "fragrance_family": "woody",
+        "stock_quantity": 126,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 400,
+        "reserved_quantity": 5,
+        "available_quantity": 121,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 7,
+        "supplier_info": {
+            "supplier_name": "Mine Perfumery Labs",
+            "lead_time_days": 12,
             "minimum_order_quantity": 30
         },
         "sales_velocity": {
-            "daily_avg": 1.8,
-            "weekly_avg": 12.6,
-            "monthly_avg": 50.4
+            "daily_avg": 2.9,
+            "weekly_avg": 20.3,
+            "monthly_avg": 81.2
         },
         "seasonal_demand": {
-            "high_season": ["february", "march", "april", "may"],
-            "low_season": ["september", "october"]
+            "high_season": ["march", "june"],
+            "low_season": ["january", "february"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_011": {
+        "product_id": "IDN_011",
+        "seller_id": "mineperfumery_official",
+        "name": "Vanilla Spice",
+        "brand": "Mine Perfumery",
+        "price_idr": 295000,
+        "fragrance_family": "oriental",
+        "stock_quantity": 169,
+        "min_stock_threshold": 25,
+        "max_stock_capacity": 450,
+        "reserved_quantity": 8,
+        "available_quantity": 161,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 14,
+        "supplier_info": {
+            "supplier_name": "Mine Perfumery Labs",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 35
+        },
+        "sales_velocity": {
+            "daily_avg": 4.0,
+            "weekly_avg": 28.0,
+            "monthly_avg": 112.0
+        },
+        "seasonal_demand": {
+            "high_season": ["december", "february"],
+            "low_season": ["june", "july"]
         },
         "location": "Bandung Warehouse",
-        "status": "low_stock"
+        "status": "active"
+    },
+    "IDN_012": {
+        "product_id": "IDN_012",
+        "seller_id": "hmns_official",
+        "name": "The Perfection",
+        "brand": "HMNS",
+        "price_idr": 400000,
+        "fragrance_family": "floral woody",
+        "stock_quantity": 100,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 400,
+        "reserved_quantity": 6,
+        "available_quantity": 94,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 8,
+        "supplier_info": {
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 16,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.7,
+            "weekly_avg": 18.9,
+            "monthly_avg": 75.6
+        },
+        "seasonal_demand": {
+            "high_season": ["october", "november", "december"],
+            "low_season": ["may"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_013": {
+        "product_id": "IDN_013",
+        "seller_id": "hmns_official",
+        "name": "Farhampton",
+        "brand": "HMNS",
+        "price_idr": 380000,
+        "fragrance_family": "aromatic green",
+        "stock_quantity": 80,
+        "min_stock_threshold": 15,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 5,
+        "available_quantity": 75,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 6,
+        "supplier_info": {
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 20
+        },
+        "sales_velocity": {
+            "daily_avg": 2.3,
+            "weekly_avg": 16.1,
+            "monthly_avg": 64.4
+        },
+        "seasonal_demand": {
+            "high_season": ["july", "august"],
+            "low_season": ["february"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_014": {
+        "product_id": "IDN_014",
+        "seller_id": "hmns_official",
+        "name": "Essence of the Sun (EoS)",
+        "brand": "HMNS",
+        "price_idr": 420000,
+        "fragrance_family": "sunny citrus floral",
+        "stock_quantity": 90,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 350,
+        "reserved_quantity": 7,
+        "available_quantity": 83,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 13,
+        "supplier_info": {
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 30
+        },
+        "sales_velocity": {
+            "daily_avg": 3.2,
+            "weekly_avg": 22.4,
+            "monthly_avg": 89.6
+        },
+        "seasonal_demand": {
+            "high_season": ["april", "may", "june"],
+            "low_season": ["november"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_015": {
+        "product_id": "IDN_015",
+        "seller_id": "hmns_official",
+        "name": "Orgsm Melting Temptation",
+        "brand": "HMNS",
+        "price_idr": 450000,
+        "fragrance_family": "gourmand oriental",
+        "stock_quantity": 70,
+        "min_stock_threshold": 15,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 4,
+        "available_quantity": 66,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 18,
+        "supplier_info": {
+            "supplier_name": "PT HMNS Indonesia",
+            "lead_time_days": 15,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.5,
+            "weekly_avg": 17.5,
+            "monthly_avg": 70.0
+        },
+        "seasonal_demand": {
+            "high_season": ["december", "january", "february"],
+            "low_season": ["august"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_016": {
+        "product_id": "IDN_016",
+        "seller_id": "alchemist_official",
+        "name": "Home Garden",
+        "brand": "Alchemist",
+        "price_idr": 300000,
+        "fragrance_family": "green floral",
+        "stock_quantity": 110,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 350,
+        "reserved_quantity": 5,
+        "available_quantity": 105,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 4,
+        "supplier_info": {
+            "supplier_name": "Alchemist Aroma Works",
+            "lead_time_days": 10,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.8,
+            "weekly_avg": 19.6,
+            "monthly_avg": 78.4
+        },
+        "seasonal_demand": {
+            "high_season": ["march", "april"],
+            "low_season": ["october"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_017": {
+        "product_id": "IDN_017",
+        "seller_id": "alchemist_official",
+        "name": "Got My Mojo Back",
+        "brand": "Alchemist",
+        "price_idr": 320000,
+        "fragrance_family": "spicy citrus",
+        "stock_quantity": 95,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 350,
+        "reserved_quantity": 6,
+        "available_quantity": 89,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 9,
+        "supplier_info": {
+            "supplier_name": "Alchemist Aroma Works",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.6,
+            "weekly_avg": 18.2,
+            "monthly_avg": 72.8
+        },
+        "seasonal_demand": {
+            "high_season": ["may", "june", "july"],
+            "low_season": ["november"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+    "IDN_018": {
+        "product_id": "IDN_018",
+        "seller_id": "alchemist_official",
+        "name": "Pink Laundry",
+        "brand": "Alchemist",
+        "price_idr": 280000,
+        "fragrance_family": "clean floral",
+        "stock_quantity": 120,
+        "min_stock_threshold": 25,
+        "max_stock_capacity": 350,
+        "reserved_quantity": 7,
+        "available_quantity": 113,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 7,
+        "supplier_info": {
+            "supplier_name": "Alchemist Aroma Works",
+            "lead_time_days": 11,
+            "minimum_order_quantity": 30
+        },
+        "sales_velocity": {
+            "daily_avg": 3.0,
+            "weekly_avg": 21.0,
+            "monthly_avg": 84.0
+        },
+        "seasonal_demand": {
+            "high_season": ["march", "april"],
+            "low_season": ["august"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_019": {
+        "product_id": "IDN_019",
+        "seller_id": "onix_official",
+        "name": "Mexicola",
+        "brand": "Onix Fragrance",
+        "price_idr": 250000,
+        "fragrance_family": "sweet fruity floral",
+        "stock_quantity": 85,
+        "min_stock_threshold": 15,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 4,
+        "available_quantity": 81,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 6,
+        "supplier_info": {
+            "supplier_name": "PT Onix Aroma",
+            "lead_time_days": 10,
+            "minimum_order_quantity": 20
+        },
+        "sales_velocity": {
+            "daily_avg": 2.2,
+            "weekly_avg": 15.4,
+            "monthly_avg": 61.6
+        },
+        "seasonal_demand": {
+            "high_season": ["june", "december"],
+            "low_season": ["february"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_020": {
+        "product_id": "IDN_020",
+        "seller_id": "onix_official",
+        "name": "Senoparty",
+        "brand": "Onix Fragrance",
+        "price_idr": 270000,
+        "fragrance_family": "fruity gourmand",
+        "stock_quantity": 100,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 5,
+        "available_quantity": 95,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 12,
+        "supplier_info": {
+            "supplier_name": "PT Onix Aroma",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.9,
+            "weekly_avg": 20.3,
+            "monthly_avg": 81.2
+        },
+        "seasonal_demand": {
+            "high_season": ["august", "september", "december"],
+            "low_season": ["march"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+    "IDN_021": {
+        "product_id": "IDN_021",
+        "seller_id": "mykonos_official",
+        "name": "California Blue",
+        "brand": "Mykonos",
+        "price_idr": 300000,
+        "fragrance_family": "aquatic citrus",
+        "stock_quantity": 110,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 400,
+        "reserved_quantity": 6,
+        "available_quantity": 104,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 15,
+        "supplier_info": {
+            "supplier_name": "PT Mykonos Aroma",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 30
+        },
+        "sales_velocity": {
+            "daily_avg": 3.1,
+            "weekly_avg": 21.7,
+            "monthly_avg": 86.8
+        },
+        "seasonal_demand": {
+            "high_season": ["july", "august"],
+            "low_season": ["february"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_022": {
+        "product_id": "IDN_022",
+        "seller_id": "leamor_official",
+        "name": "Gardenia (Premium)",
+        "brand": "Le Amor",
+        "price_idr": 320000,
+        "fragrance_family": "floral sweet",
+        "stock_quantity": 90,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 350,
+        "reserved_quantity": 5,
+        "available_quantity": 85,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 5,
+        "supplier_info": {
+            "supplier_name": "Le Amor Fragrance",
+            "lead_time_days": 13,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.4,
+            "weekly_avg": 16.8,
+            "monthly_avg": 67.2
+        },
+        "seasonal_demand": {
+            "high_season": ["february", "march"],
+            "low_season": ["september"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_023": {
+        "product_id": "IDN_023",
+        "seller_id": "kahf_official",
+        "name": "Mystic Oud",
+        "brand": "Kahf",
+        "price_idr": 450000,
+        "fragrance_family": "oriental woody",
+        "stock_quantity": 80,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 4,
+        "available_quantity": 76,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 20,
+        "supplier_info": {
+            "supplier_name": "Kahf Indonesia",
+            "lead_time_days": 18,
+            "minimum_order_quantity": 20
+        },
+        "sales_velocity": {
+            "daily_avg": 2.0,
+            "weekly_avg": 14.0,
+            "monthly_avg": 56.0
+        },
+        "seasonal_demand": {
+            "high_season": ["november", "december"],
+            "low_season": ["may", "june"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_024": {
+        "product_id": "IDN_024",
+        "seller_id": "zentja_official",
+        "name": "Since Day One",
+        "brand": "Zentja",
+        "price_idr": 340000,
+        "fragrance_family": "woody aromatic",
+        "stock_quantity": 100,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 400,
+        "reserved_quantity": 5,
+        "available_quantity": 95,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 10,
+        "supplier_info": {
+            "supplier_name": "Zentja Aroma Works",
+            "lead_time_days": 15,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.7,
+            "weekly_avg": 18.9,
+            "monthly_avg": 75.6
+        },
+        "seasonal_demand": {
+            "high_season": ["march", "october"],
+            "low_season": ["january"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+        "IDN_025": {
+        "product_id": "IDN_025",
+        "seller_id": "zentja_official",
+        "name": "Sunset Oasis",
+        "brand": "Zentja",
+        "price_idr": 360000,
+        "fragrance_family": "oriental floral",
+        "stock_quantity": 85,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 350,
+        "reserved_quantity": 6,
+        "available_quantity": 79,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 8,
+        "supplier_info": {
+            "supplier_name": "Zentja Aroma Works",
+            "lead_time_days": 15,
+            "minimum_order_quantity": 30
+        },
+        "sales_velocity": {
+            "daily_avg": 2.8,
+            "weekly_avg": 19.6,
+            "monthly_avg": 78.4
+        },
+        "seasonal_demand": {
+            "high_season": ["june", "july", "december"],
+            "low_season": ["march"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_026": {
+        "product_id": "IDN_026",
+        "seller_id": "zentja_official",
+        "name": "Give It Time",
+        "brand": "Zentja",
+        "price_idr": 330000,
+        "fragrance_family": "woody floral",
+        "stock_quantity": 95,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 5,
+        "available_quantity": 90,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 12,
+        "supplier_info": {
+            "supplier_name": "Zentja Aroma Works",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.3,
+            "weekly_avg": 16.1,
+            "monthly_avg": 64.4
+        },
+        "seasonal_demand": {
+            "high_season": ["february", "april"],
+            "low_season": ["september"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_027": {
+        "product_id": "IDN_027",
+        "seller_id": "fakhruloud_official",
+        "name": "Signature 002",
+        "brand": "Fakhrul Oud",
+        "price_idr": 600000,
+        "fragrance_family": "oriental oud",
+        "stock_quantity": 70,
+        "min_stock_threshold": 15,
+        "max_stock_capacity": 250,
+        "reserved_quantity": 4,
+        "available_quantity": 66,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 20,
+        "supplier_info": {
+            "supplier_name": "Fakhrul Oud Exclusive",
+            "lead_time_days": 20,
+            "minimum_order_quantity": 15
+        },
+        "sales_velocity": {
+            "daily_avg": 1.9,
+            "weekly_avg": 13.3,
+            "monthly_avg": 53.2
+        },
+        "seasonal_demand": {
+            "high_season": ["november", "december"],
+            "low_season": ["january", "february"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_028": {
+        "product_id": "IDN_028",
+        "seller_id": "euodia_official",
+        "name": "Gerania",
+        "brand": "Euodia Parfums",
+        "price_idr": 300000,
+        "fragrance_family": "floral clean",
+        "stock_quantity": 90,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 5,
+        "available_quantity": 85,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 9,
+        "supplier_info": {
+            "supplier_name": "Euodia Parfums Indonesia",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 20
+        },
+        "sales_velocity": {
+            "daily_avg": 2.5,
+            "weekly_avg": 17.5,
+            "monthly_avg": 70.0
+        },
+        "seasonal_demand": {
+            "high_season": ["march", "april"],
+            "low_season": ["october"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+    "IDN_029": {
+        "product_id": "IDN_029",
+        "seller_id": "oakenlab_official",
+        "name": "Green Harmony",
+        "brand": "Oaken Lab",
+        "price_idr": 320000,
+        "fragrance_family": "green woody",
+        "stock_quantity": 100,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 6,
+        "available_quantity": 94,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 7,
+        "supplier_info": {
+            "supplier_name": "Oaken Lab Works",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.7,
+            "weekly_avg": 18.9,
+            "monthly_avg": 75.6
+        },
+        "seasonal_demand": {
+            "high_season": ["june", "july"],
+            "low_season": ["february"]
+        },
+        "location": "Surabaya Warehouse",
+        "status": "active"
+    },
+    "IDN_030": {
+        "product_id": "IDN_030",
+        "seller_id": "scarlett_official",
+        "name": "Scarlet Whisper",
+        "brand": "Scarlett",
+        "price_idr": 150000,
+        "fragrance_family": "floral fruity",
+        "stock_quantity": 120,
+        "min_stock_threshold": 25,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 7,
+        "available_quantity": 113,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 5,
+        "supplier_info": {
+            "supplier_name": "Scarlett Indonesia",
+            "lead_time_days": 10,
+            "minimum_order_quantity": 40
+        },
+        "sales_velocity": {
+            "daily_avg": 3.3,
+            "weekly_avg": 23.1,
+            "monthly_avg": 92.4
+        },
+        "seasonal_demand": {
+            "high_season": ["january", "february", "march"],
+            "low_season": ["august"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_031": {
+        "product_id": "IDN_031",
+        "seller_id": "carlclaire_official",
+        "name": "Blooming Hope",
+        "brand": "Carl & Claire",
+        "price_idr": 290000,
+        "fragrance_family": "floral fruity",
+        "stock_quantity": 110,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 5,
+        "available_quantity": 105,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 11,
+        "supplier_info": {
+            "supplier_name": "Carl & Claire Indonesia",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 2.6,
+            "weekly_avg": 18.2,
+            "monthly_avg": 72.8
+        },
+        "seasonal_demand": {
+            "high_season": ["april", "may"],
+            "low_season": ["october"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
+    },
+    "IDN_032": {
+        "product_id": "IDN_032",
+        "seller_id": "euodia_official",
+        "name": "Freese",
+        "brand": "Euodia Parfums",
+        "price_idr": 300000,
+        "fragrance_family": "green fresh",
+        "stock_quantity": 100,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 300,
+        "reserved_quantity": 5,
+        "available_quantity": 95,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 6,
+        "supplier_info": {
+            "supplier_name": "Euodia Parfums Indonesia",
+            "lead_time_days": 11,
+            "minimum_order_quantity": 20
+        },
+        "sales_velocity": {
+            "daily_avg": 2.4,
+            "weekly_avg": 16.8,
+            "monthly_avg": 67.2
+        },
+        "seasonal_demand": {
+            "high_season": ["march", "november"],
+            "low_season": ["february"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_033": {
+        "product_id": "IDN_033",
+        "seller_id": "kahf_official",
+        "name": "Revered Oud",
+        "brand": "Kahf",
+        "price_idr": 206625,
+        "fragrance_family": "oriental woody gourmand",
+        "stock_quantity": 120,
+        "min_stock_threshold": 20,
+        "max_stock_capacity": 400,
+        "reserved_quantity": 5,
+        "available_quantity": 115,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 6,
+        "supplier_info": {
+            "supplier_name": "Kahf Indonesia",
+            "lead_time_days": 14,
+            "minimum_order_quantity": 20
+        },
+        "sales_velocity": {
+            "daily_avg": 2.5,
+            "weekly_avg": 17.5,
+            "monthly_avg": 70.0
+        },
+        "seasonal_demand": {
+            "high_season": ["november", "december"],
+            "low_season": ["july", "august"]
+        },
+        "location": "Jakarta Warehouse",
+        "status": "active"
+    },
+    "IDN_034": {
+        "product_id": "IDN_034",
+        "seller_id": "studiowest_official",
+        "name": "Mykonos",
+        "brand": "Studiowest",
+        "price_idr": 195000,
+        "fragrance_family": "fruity sweet musky",
+        "stock_quantity": 150,
+        "min_stock_threshold": 30,
+        "max_stock_capacity": 500,
+        "reserved_quantity": 8,
+        "available_quantity": 142,
+        "last_restocked": int(datetime.now().timestamp()) - 86400 * 10, 
+        "supplier_info": {
+            "supplier_name": "Studiowest Indonesia",
+            "lead_time_days": 12,
+            "minimum_order_quantity": 25
+        },
+        "sales_velocity": {
+            "daily_avg": 3.5,
+            "weekly_avg": 24.5,
+            "monthly_avg": 98.0
+        },
+        "seasonal_demand": {
+            "high_season": ["june", "july"],
+            "low_season": ["february"]
+        },
+        "location": "Bandung Warehouse",
+        "status": "active"
     }
 }
 
@@ -267,13 +1196,12 @@ async def get_seller_inventory_endpoint(ctx: Context, req) -> SellerInventoryRes
         )
 
 @inventory_agent.on_rest_get("/inventory/alerts", InventoryAlertsResponse)
-async def get_inventory_alerts_endpoint(ctx: Context, req) -> InventoryAlertsResponse:
-    """Get all inventory alerts"""
+async def get_inventory_alerts_endpoint(ctx: Context) -> InventoryAlertsResponse:
+    """Get all inventory alerts - FIXED tanpa parameter req"""
     try:
         all_products = list(inventory_database.values())
         alerts = generate_stock_alerts(all_products)
         
-        # Get critical alerts (out of stock or very low)
         critical_alerts = []
         warning_alerts = []
         
@@ -312,8 +1240,8 @@ async def get_inventory_alerts_endpoint(ctx: Context, req) -> InventoryAlertsRes
         )
 
 @inventory_agent.on_rest_get("/inventory/recommendations", InventoryRecommendationsResponse)
-async def get_inventory_recommendations_endpoint(ctx: Context, req) -> InventoryRecommendationsResponse:
-    """Get inventory management recommendations"""
+async def get_inventory_recommendations_endpoint(ctx: Context) -> InventoryRecommendationsResponse:
+    """Get inventory management recommendations - FIXED tanpa parameter req"""
     try:
         all_products = list(inventory_database.values())
         recommendations = generate_inventory_recommendations(all_products)
@@ -341,8 +1269,8 @@ async def get_inventory_recommendations_endpoint(ctx: Context, req) -> Inventory
         )
 
 @inventory_agent.on_rest_get("/health", HealthCheckResponse)
-async def health_check_endpoint(ctx: Context, req) -> HealthCheckResponse:
-    """Health check endpoint"""
+async def health_check_endpoint(ctx: Context) -> HealthCheckResponse:
+    """Health check endpoint - FIXED tanpa parameter req yang bermasalah"""
     try:
         total_products = len(inventory_database)
         low_stock_count = sum(1 for p in inventory_database.values() if p["stock_quantity"] <= p["min_stock_threshold"])
@@ -356,7 +1284,7 @@ async def health_check_endpoint(ctx: Context, req) -> HealthCheckResponse:
             timestamp=datetime.now().timestamp()
         )
     except Exception as e:
-        ctx.logger.error(f"❌ Health check error: {e}")
+        ctx.logger.error(f"Health check error: {e}")
         return HealthCheckResponse(
             status="error",
             total_products=0,
@@ -527,7 +1455,7 @@ def estimate_restock_date(product: Dict) -> str:
     """Estimate when product will be restocked"""
     
     lead_time = product["supplier_info"]["lead_time_days"]
-    estimated_date = datetime.now() + datetime.timedelta(days=lead_time)
+    estimated_date = datetime.now() + timedelta(days=lead_time)
     
     return estimated_date.strftime("%Y-%m-%d")
 

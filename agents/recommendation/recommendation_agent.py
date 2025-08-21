@@ -88,7 +88,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 100,
         "rating": 3.8,
         "verified_reviews": 47,
-        "image_url": "/images/IDN_001.jpg"
+        "image_url": "/images/IDN_001.jpeg"
     },
     {
         "product_id": "IDN_002",
@@ -116,7 +116,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 75,
         "rating": 4.1,
         "verified_reviews": 78,
-        "image_url": "/images/IDN_002.jpg"
+        "image_url": "/images/IDN_002.jpeg"
     },
     {
         "product_id": "IDN_003",
@@ -144,7 +144,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 60,
         "rating": 4.5,
         "verified_reviews": 67,
-        "image_url": "/images/IDN_003.jpg"
+        "image_url": "/images/IDN_003.jpeg"
     },
     {
         "product_id": "IDN_004",
@@ -172,7 +172,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 137,
         "rating": 4.6,
         "verified_reviews": 89,
-        "image_url": "/images/IDN_004.jpg"
+        "image_url": "/images/IDN_004.jpeg"
     },
     {
         "product_id": "IDN_005",
@@ -200,7 +200,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 152,
         "rating": 4.7,
         "verified_reviews": 94,
-        "image_url": "/images/IDN_005.jpg"
+        "image_url": "/images/IDN_005.jpeg"
     },
     {
         "product_id": "IDN_006",
@@ -228,7 +228,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 128,
         "rating": 4.8,
         "verified_reviews": 102,
-        "image_url": "/images/IDN_006.jpg"
+        "image_url": "/images/IDN_006.jpeg"
     },
     {
         "product_id": "IDN_007",
@@ -256,7 +256,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 173,
         "rating": 4.5,
         "verified_reviews": 75,
-        "image_url": "/images/IDN_007.jpg"
+        "image_url": "/images/IDN_007.jpeg"
     },
     {
         "product_id": "IDN_008",
@@ -284,7 +284,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 199,
         "rating": 4.7,
         "verified_reviews": 88,
-        "image_url": "/images/IDN_008.jpg"
+        "image_url": "/images/IDN_008.jpeg"
     },
     {
         "product_id": "IDN_009",
@@ -312,7 +312,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 165,
         "rating": 4.6,
         "verified_reviews": 91,
-        "image_url": "/images/IDN_009.jpg"
+        "image_url": "/images/IDN_009.jpeg"
     },
     {
         "product_id": "IDN_010",
@@ -340,7 +340,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 126,
         "rating": 4.5,
         "verified_reviews": 79,
-        "image_url": "/images/IDN_010.jpg"
+        "image_url": "/images/IDN_010.jpeg"
     },
     {
         "product_id": "IDN_011",
@@ -368,7 +368,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 169,
         "rating": 4.7,
         "verified_reviews": 88,
-        "image_url": "/images/IDN_011.jpg"
+        "image_url": "/images/IDN_011.jpeg"
     },
     {
         "product_id": "IDN_012",
@@ -396,7 +396,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 100,
         "rating": 4.5,
         "verified_reviews": 50,
-        "image_url": "/images/IDN_012.jpg"
+        "image_url": "/images/IDN_012.jpeg"
     },
     {
         "product_id": "IDN_013",
@@ -424,7 +424,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 80,
         "rating": 4.3,
         "verified_reviews": 45,
-        "image_url": "/images/IDN_013.jpg"
+        "image_url": "/images/IDN_013.jpeg"
     },
     {
         "product_id": "IDN_014",
@@ -452,7 +452,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 90,
         "rating": 4.6,
         "verified_reviews": 60,
-        "image_url": "/images/IDN_014.jpg"
+        "image_url": "/images/IDN_014.jpeg"
     },
     {
         "product_id": "IDN_015",
@@ -480,7 +480,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 70,
         "rating": 4.8,
         "verified_reviews": 55,
-        "image_url": "/images/IDN_015.jpg"
+        "image_url": "/images/IDN_015.jpeg"
     },
     {
         "product_id": "IDN_016",
@@ -508,7 +508,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 110,
         "rating": 4.4,
         "verified_reviews": 50,
-        "image_url": "/images/IDN_016.jpg"
+        "image_url": "/images/IDN_016.jpeg"
     },
     {
         "product_id": "IDN_017",
@@ -536,7 +536,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 95,
         "rating": 4.5,
         "verified_reviews": 60,
-        "image_url": "/images/IDN_017.jpg"
+        "image_url": "/images/IDN_017.jpeg"
     },
     {
         "product_id": "IDN_018",
@@ -564,7 +564,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 120,
         "rating": 4.3,
         "verified_reviews": 70,
-        "image_url": "/images/IDN_018.jpg"
+        "image_url": "/images/IDN_018.jpeg"
     },
     {
         "product_id": "IDN_019",
@@ -592,7 +592,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 85,
         "rating": 4.6,
         "verified_reviews": 65,
-        "image_url": "/images/IDN_019.jpg"
+        "image_url": "/images/IDN_019.jpeg"
     },
     {
         "product_id": "IDN_020",
@@ -620,7 +620,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 100,
         "rating": 4.4,
         "verified_reviews": 55,
-        "image_url": "/images/IDN_020.jpg"
+        "image_url": "/images/IDN_020.jpeg"
     },
     {
         "product_id": "IDN_021",
@@ -648,7 +648,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 110,
         "rating": 4.5,
         "verified_reviews": 60,
-        "image_url": "/images/IDN_021.jpg"
+        "image_url": "/images/IDN_021.jpeg"
     },
     {
         "product_id": "IDN_022",
@@ -676,7 +676,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 90,
         "rating": 4.6,
         "verified_reviews": 70,
-        "image_url": "/images/IDN_022.jpg"
+        "image_url": "/images/IDN_022.jpeg"
     },
     {
         "product_id": "IDN_023",
@@ -704,7 +704,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 80,
         "rating": 4.7,
         "verified_reviews": 65,
-        "image_url": "/images/IDN_023.jpg"
+        "image_url": "/images/IDN_023.jpeg"
     },
     {
         "product_id": "IDN_024",
@@ -732,7 +732,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 100,
         "rating": 4.5,
         "verified_reviews": 60,
-        "image_url": "/images/IDN_024.jpg"
+        "image_url": "/images/IDN_024.jpeg"
     },
     {
         "product_id": "IDN_025",
@@ -760,7 +760,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 85,
         "rating": 4.6,
         "verified_reviews": 55,
-        "image_url": "/images/IDN_025.jpg"
+        "image_url": "/images/IDN_025.jpeg"
     },
     {
         "product_id": "IDN_026",
@@ -788,7 +788,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 95,
         "rating": 4.4,
         "verified_reviews": 50,
-        "image_url": "/images/IDN_026.jpg"
+        "image_url": "/images/IDN_026.jpeg"
     },
     {
         "product_id": "IDN_027",
@@ -816,35 +816,35 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 70,
         "rating": 4.8,
         "verified_reviews": 60,
-        "image_url": "/images/IDN_027.jpg"
+        "image_url": "/images/IDN_027.jpeg"
     },
     {
         "product_id": "IDN_028",
-        "name": "Heirloom Tuberose",
-        "brand": "Mother of Pearl",
-        "price_idr": 550000,
-        "fragrance_family": "white floral",
-        "top_notes": ["Green Leaf", "Tuberose"],
-        "middle_notes": ["Jasmine", "Gardenia"],
-        "base_notes": ["Soft Musk", "Cream"],
-        "occasions": ["evening", "romantic"],
-        "personality_match": ["elegant", "sensual"],
-        "longevity": "6-8 hours",
-        "sillage": "moderate",
+        "name": "Gerania",
+        "brand": "Euodia Parfums",
+        "price_idr": 300000,
+        "fragrance_family": "floral clean",
+        "top_notes": ["Geranium", "Green Accord"],
+        "middle_notes": ["Floral"],
+        "base_notes": ["Musk", "Clean Amber"],
+        "occasions": ["daytime", "casual"],
+        "personality_match": ["charming", "fresh"],
+        "longevity": "4-6 hours",
+        "sillage": "light",
         "projection": "moderate",
         "indonesian_heritage": True,
         "halal_certified": True,
-        "local_ingredients": [],
-        "climate_suitability": "tropical_evening",
-        "target_age": "25-40",
+        "local_ingredients": ["Geranium"],
+        "climate_suitability": "tropical_all_day",
+        "target_age": "20-35",
         "gender": "feminine",
-        "description": "Rich white floral color like jewelry—soft, elegant, and alluring.",
-        "tagline": "Floral heirloom luxury",
+        "description": "Geranium floral—clean, charming, and refreshing.",
+        "tagline": "Geranium charm",
         "stock_available": True,
-        "stock_quantity": 80,
-        "rating": 4.7,
-        "verified_reviews": 65,
-        "image_url": "/images/IDN_028.jpg"
+        "stock_quantity": 90,
+        "rating": 4.4,
+        "verified_reviews": 60,
+        "image_url": "/images/IDN_028.jpeg"
     },
     {
         "product_id": "IDN_029",
@@ -872,7 +872,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 100,
         "rating": 4.5,
         "verified_reviews": 55,
-        "image_url": "/images/IDN_029.jpg"
+        "image_url": "/images/IDN_029.jpeg"
     },
     {
         "product_id": "IDN_030",
@@ -900,7 +900,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 120,
         "rating": 4.3,
         "verified_reviews": 70,
-        "image_url": "/images/IDN_030.jpg"
+        "image_url": "/images/IDN_030.jpeg"
     },
     {
         "product_id": "IDN_031",
@@ -928,7 +928,7 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 110,
         "rating": 4.4,
         "verified_reviews": 60,
-        "image_url": "/images/IDN_031.jpg"
+        "image_url": "/images/IDN_031.jpeg"
     },
     {
         "product_id": "IDN_032",
@@ -956,63 +956,63 @@ INDONESIAN_FRAGRANCE_DATABASE = [
         "stock_quantity": 100,
         "rating": 4.3,
         "verified_reviews": 55,
-        "image_url": "/images/IDN_032.jpg"
+        "image_url": "/images/IDN_032.jpeg"
     },
     {
         "product_id": "IDN_033",
-        "name": "Gerania",
-        "brand": "Euodia Parfums",
-        "price_idr": 300000,
-        "fragrance_family": "floral clean",
-        "top_notes": ["Geranium", "Green Accord"],
-        "middle_notes": ["Floral"],
-        "base_notes": ["Musk", "Clean Amber"],
-        "occasions": ["daytime", "casual"],
-        "personality_match": ["charming", "fresh"],
-        "longevity": "4-6 hours",
-        "sillage": "light",
+        "name": "Revered Oud",
+        "brand": "Kahf",
+        "price_idr": 206625,
+        "fragrance_family": "oriental woody gourmand",
+        "top_notes": ["Saffron", "Vanilla"],
+        "middle_notes": ["Oud", "Amber"],
+        "base_notes": ["Woody Notes", "Musk"],
+        "occasions": ["evening", "formal"],
+        "personality_match": ["intense", "mysterious", "luxurious"],
+        "longevity": "7-9 hours",
+        "sillage": "strong",
         "projection": "moderate",
         "indonesian_heritage": True,
         "halal_certified": True,
-        "local_ingredients": ["Geranium"],
-        "climate_suitability": "tropical_all_day",
-        "target_age": "20-35",
-        "gender": "feminine",
-        "description": "Geranium floral—clean, charming, and refreshing.",
-        "tagline": "Geranium charm",
+        "local_ingredients": [],
+        "climate_suitability": "tropical_evening",
+        "target_age": "25-45",
+        "gender": "unisex",
+        "description": "Perpaduan oud smoky, saffron, dan vanilla yang hangat, menghadirkan aroma misterius dan elegan khas parfum oriental.",
+        "tagline": "Mystery in every oud drop",
         "stock_available": True,
-        "stock_quantity": 90,
-        "rating": 4.4,
-        "verified_reviews": 60,
-        "image_url": "/images/IDN_033.jpg"
+        "stock_quantity": 120,
+        "rating": 4.6,
+        "verified_reviews": 85,
+        "image_url": "/images/IDN_033.jpeg"
     },
     {
         "product_id": "IDN_034",
-        "name": "Earth Love",
-        "brand": "Earth Love Life",
-        "price_idr": 280000,
-        "fragrance_family": "green earthy",
-        "top_notes": ["Green Accord", "Bergamot"],
-        "middle_notes": ["Patchouli", "Vetiver"],
-        "base_notes": ["Cedarwood", "Musk"],
-        "occasions": ["daily", "natural"],
-        "personality_match": ["grounded", "serene"],
+        "name": "Mykonos",
+        "brand": "Studiowest",
+        "price_idr": 195000,
+        "fragrance_family": "fruity sweet musky",
+        "top_notes": ["Fruity Notes", "Citrus Accord"],
+        "middle_notes": ["Floral Notes"],
+        "base_notes": ["Musk", "Sweet Accord"],
+        "occasions": ["daily", "casual"],
+        "personality_match": ["playful", "cheerful", "youthful"],
         "longevity": "5-7 hours",
-        "sillage": "light-moderate",
-        "projection": "moderate",
+        "sillage": "moderate",
+        "projection": "intimate",
         "indonesian_heritage": True,
         "halal_certified": True,
-        "local_ingredients": ["Patchouli"],
+        "local_ingredients": [],
         "climate_suitability": "tropical_all_day",
-        "target_age": "20-40",
+        "target_age": "18-30",
         "gender": "unisex",
-        "description": "Earthy green scent with a calming, natural essence.",
-        "tagline": "Love for the earth",
+        "description": "Wangi fruity manis berpadu dengan floral lembut dan musk, menghadirkan kesan segar sekaligus hangat untuk keseharian.",
+        "tagline": "Sweet fruity elegance",
         "stock_available": True,
-        "stock_quantity": 100,
-        "rating": 4.5,
-        "verified_reviews": 55,
-        "image_url": "/images/IDN_034.jpg"
+        "stock_quantity": 150,
+        "rating": 4.4,
+        "verified_reviews": 70,
+        "image_url": "/images/IDN_034.jpeg"
     }
 ]
 

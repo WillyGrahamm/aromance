@@ -1,7 +1,32 @@
 use ic_cdk_macros::*;
-use std::collections::HashMap;
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize}; 
 use ic_cdk::api::time;
+use serde::Serialize;
+use std::collections::HashMap;
+
+#[derive(CandidType, Deserialize)]
+pub struct HttpRequest {
+    pub method: String,
+    pub url: String,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
+#[derive(CandidType, Serialize)]
+pub struct HttpResponse {
+    pub status_code: u16,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
+#[ic_cdk::query]
+fn http_request(_req: HttpRequest) -> HttpResponse {
+    HttpResponse {
+        status_code: 200,
+        headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+        body: b"Hello from Aromance backend!".to_vec(),
+    }
+}
 
 #[derive(CandidType, Deserialize, Clone)]
 pub struct DecentralizedIdentity {

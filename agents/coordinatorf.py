@@ -32,6 +32,7 @@ class ICPResponse(Model):
     result: Any = None
     error: Optional[str] = None
 
+# NEW: REST endpoint models using new uAgents syntax
 class ConsultationStartRequest(Model):
     user_id: str
 
@@ -53,20 +54,13 @@ class SystemMetricsResponse(Model):
     active_sessions: int
     timestamp: float
 
-class ChatMessage(Model):
-    message: str
-    user_id: str
-
-class ChatResponse(Model):
-    reply: str
-    success: bool
-
 # Enhanced Coordinator Agent
 coordinator_agent = Agent(
     name="aromance_system_coordinator",
     port=8000,
     seed="aromance_coordinator_enhanced_2025",
     endpoint=["http://127.0.0.1:8000/submit"],
+    mailbox=True,
 )
 
 # Agent registry with real endpoints
@@ -585,210 +579,6 @@ async def periodic_maintenance(ctx: Context):
     ctx.logger.info(f"📊 Active sessions: {len(active_sessions)}")
     ctx.logger.info(f"📈 Total consultations: {system_metrics['total_consultations']}")
     ctx.logger.info(f"💾 ICP sync success rate: {system_metrics['icp_sync_success']}/{system_metrics['icp_sync_success'] + system_metrics['icp_sync_failures']}")
-
-#ASI:One related code
-# WELCOME MESSAGE
-def get_welcome_message() -> str:
-    """Default welcome message"""
-    return """🌺 **Welcome to Aromance!**
-
-I'm your AI assistant for Indonesian fragrance consultation. I can help with:
-
-💐 **"consultation"** - Personal fragrance profiling
-🎯 **"recommendation"** - Fragrance suggestions based on personality  
-🛒 **"buy"** - Secure purchase information
-📊 **"analytics"** - System dashboard (for sellers)
-
-Which one would you like to start with? Type the command above! ✨"""
-
-# Main chat endpoint for ASI:One
-@coordinator_agent.on_rest_post("/chat", ChatMessage, ChatResponse)
-async def handle_asi_chat(ctx: Context, req: ChatMessage) -> ChatResponse:
-    try:
-        reply = await route_chat_message(ctx, req.message, req.user_id)
-        return ChatResponse(reply=reply, success=True)
-    except Exception as e:
-        ctx.logger.error(f"Chat error: {e}")
-        return ChatResponse(reply="Maaf, ada masalah sistem. Coba lagi ya!", success=False)
-
-# Route chat to appropriate agent
-async def route_chat_message(ctx: Context, message: str, user_id: str) -> str:
-    msg = message.lower()
-    
-    # 1. CONSULTATION - route to consultation agent
-    if any(word in msg for word in ["konsultasi", "consultation", "mulai", "start", "profil", "profile"]):
-        return await route_to_consultation_chat(ctx, user_id)
-    
-    # 2. RECOMMENDATION - route to recommendation agent  
-    elif any(word in msg for word in ["rekomendasi", "recommend", "saran", "parfum", "fragrance", "suggest"]):
-        return await route_to_recommendation_chat(ctx, user_id)
-    
-    # 3. PURCHASE/INVENTORY - route to inventory agent
-    elif any(word in msg for word in ["beli", "buy", "pesan", "order", "stok", "stock", "purchase"]):
-        return await route_to_inventory_chat(ctx, user_id)
-    
-    # 4. ANALYTICS - for seller
-    elif any(word in msg for word in ["analytics", "laporan", "data", "seller", "dashboard"]):
-        return await route_to_analytics_chat(ctx, user_id)
-    
-    # 5. GREETING/INFO
-    else:
-        return get_welcome_message()
-    
-#  Route to consultation agent via HTTP
-async def route_to_consultation_chat(ctx: Context, user_id: str) -> str:
-    try:
-        agent_endpoint = AGENT_REGISTRY["consultation"]["endpoint"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_endpoint}/consultation/start",
-                json={"user_id": user_id, "session_id": f"chat_{user_id}_{int(datetime.now().timestamp())}"},
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    return f"""✅ Fragrance consultation started!
-
-{result.get('response', {}).get('response', 'Let me help you find the perfect fragrance for you!')}
-
-Please answer the following questions to create your personal fragrance profile 🌸"""
-                
-                else:
-                    return "❌ Consultation agent is not ready. Please try again later!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Consultation routing error: {e}")
-        return "❌ Failed to start consultation. System is under maintenance!"
-
-# ROUTE to RECOMMENDATION AGENT
-async def route_to_recommendation_chat(ctx: Context, user_id: str) -> str:
-    """Route to recommendation agent via HTTP"""
-    try:
-        user_sessions = [s for s in active_sessions.values() if s['user_id'] == user_id]
-        
-        if not user_sessions:
-            return """For accurate recommendations, I need your profile first 🤔
-
-Type "start consultation" to get:
-• Analysis of your fragrance personality
-• Lifestyle-based recommendations  
-• Best Indonesian fragrance suggestions
-
-Or would you like to see our general catalog?"""
-
-        agent_endpoint = AGENT_REGISTRY["recommendation"]["endpoint"]
-        
-        user_profile = user_sessions[0]["data"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_endpoint}/recommend",
-                json={
-                    "user_id": user_id,
-                    "session_id": user_sessions[0].get("session_id", ""),
-                    "fragrance_profile": user_profile
-                },
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    recommendations = result.get('recommendations', [])
-                    
-                    if recommendations:
-                        rec_text = "🌺 **Fragrance Recommendations for You:**\n\n"
-                        for i, rec in enumerate(recommendations[:3], 1):
-                            rec_text += f"{i}. **{rec.get('name', 'Unknown')}**\n"
-                            rec_text += f"   - {rec.get('description', 'Premium fragrance')}\n"
-                            rec_text += f"   - Price: IDR {rec.get('price', 0):,}\n\n"
-                        
-                        rec_text += "Want more details or ready to 'buy'? 🛒"
-                        return rec_text
-                    else:
-                        return "No suitable recommendations found yet. Try updating your consultation profile?"
-                
-                else:
-                    return "❌ Recommendation agent is busy. Please try again later!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Recommendation routing error: {e}")
-        return "❌ Failed to get recommendations. Please refresh your profile!"
-
-# ROUTE to INVENTORY AGENT
-async def route_to_inventory_chat(ctx: Context, user_id: str) -> str:
-    """Route to inventory agent via HTTP"""
-    try:
-        agent_endpoint = AGENT_REGISTRY["inventory"]["endpoint"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_endpoint}/inventory",
-                json={
-                    "user_id": user_id,
-                    "action": "check_availability",
-                    "product_ids": []
-                },
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                
-                if response.status == 200:
-                    return """🛒 **How to Buy Aromance Fragrances:**
-
-1️⃣ **Choose Product** - from recommendations or catalog
-2️⃣ **Check Stock** - real-time availability confirmation
-3️⃣ **Escrow Payment** - secure payment via system
-4️⃣ **Delivery** - tracking until it reaches your address
-
-**Transaction Security:**
-✅ Money secured by system until goods arrive
-✅ All sellers are verified
-✅ Money back guarantee
-
-Do you have a specific product in mind or want to see recommendations first?"""
-                
-                else:
-                    return "❌ Inventory system under maintenance. Purchase information temporarily unavailable!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Inventory routing error: {e}")
-        return "❌ Failed to access purchase information. Please try again later!"
-
-# ROUTE to ANALYTICS AGENT - for seller
-async def route_to_analytics_chat(ctx: Context, user_id: str) -> str:
-    try:
-        agent_endpoint = AGENT_REGISTRY["analytics"]["endpoint"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{agent_endpoint}/analytics/dashboard",
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    dashboard = result.get('dashboard', {})
-                    
-                    return f"""📊 **Aromance Dashboard:**
-
-**System Status:**
-• Total Users: {dashboard.get('total_users', 0)}
-• Active Consultations: {len(active_sessions)}  
-• Available Products: {dashboard.get('total_products', 0)}
-
-**Performance:**
-• Success Rate: {system_metrics.get('user_satisfaction', 0.85)*100:.1f}%
-• Avg Response Time: {system_metrics.get('avg_response_time', 0.0):.2f}s
-
-Need more detailed analytics information?"""
-                
-                else:
-                    return "Analytics data is being updated. Please try again later!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Analytics routing error: {e}")
-        return "❌ Analytics not available at the moment."
 
 if __name__ == "__main__":
     coordinator_agent.run()
