@@ -2,7 +2,7 @@
 set -e
 
 # =====================================================
-# Aromance Project - Installation Script
+# Aromance Project - Installation Script (Final)
 # =====================================================
 
 # Helper functions
@@ -33,7 +33,15 @@ fi
 
 # Install Node.js v20.x
 if command -v node &> /dev/null; then
-    info "Node.js already installed: $(node -v)"
+    NODE_VERSION=$(node -v)
+    if [[ $NODE_VERSION == v20.* ]]; then
+        info "Node.js already installed: $NODE_VERSION"
+    else
+        warn "Node.js version is $NODE_VERSION, upgrading to v20..."
+        sudo apt remove -y nodejs
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt install -y nodejs
+    fi
 else
     info "Installing Node.js v20..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -50,6 +58,11 @@ else
     source $HOME/.cargo/env
 fi
 success "Rust: $(rustc --version)"
+
+# Ensure wasm32 target for ICP canisters
+info "Adding Rust target wasm32-unknown-unknown..."
+rustup target add wasm32-unknown-unknown || true
+success "Rust target wasm32-unknown-unknown ready."
 
 # Install DFX (lock version 0.24.3)
 DFX_VERSION="0.24.3"
@@ -75,12 +88,15 @@ success "Python environment ready."
 # Install root dependencies
 info "Installing root dependencies..."
 npm install
+success "Root dependencies installed."
 
 # Install frontend dependencies
 info "Installing frontend dependencies..."
 cd src/aromance_frontend
 rm -rf node_modules package-lock.json
-npm ci
+npm ci || npm install
+# Ensure react + react-dom installed
+npm install react react-dom
 cd ../..
 success "Frontend dependencies installed."
 
