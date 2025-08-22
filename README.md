@@ -319,7 +319,7 @@ aromance/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the (license)[https://aromance.gitbook.io/aromance-docs/mit-license] in our documentation.
+This project is licensed under the MIT License – see the [license](https://aromance.gitbook.io/aromance-docs/mit-license) in our documentation.
 
 ## 📞 Contact & Links
 
