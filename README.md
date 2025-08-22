@@ -272,7 +272,6 @@ Just as we understand that jasmine and sandalwood matter in Indonesian perfume c
 ### 📅 Phase 2 (Q4 2025) - Regional Expansion  
 - **🌏 Multi-language Support**: Indonesian, English, Arabic
 - **🖼️ NFT Integration**: Unique fragrance identity tokens
-- **🥽 AR/VR Experiences**: Virtual scent exploration
 - **🤝 Brand Partnerships**: Direct collaborations with perfume houses
 
 ### 📅 Phase 3 (2026) - Ecosystem Growth
@@ -320,7 +319,7 @@ aromance/
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the (license)[https://aromance.gitbook.io/aromance-docs/mit-license] in our documentation.
 
 ## 📞 Contact & Links
 
