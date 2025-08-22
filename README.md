@@ -1,4 +1,4 @@
-![Preview]([https:/aromance-e56c8.web.app/Artboard%201.png])
+![Aromance Banner](https://aromance-e56c8.web.app/Artboard%201.png)
 
 # Aromance - AI-Powered Perfume Marketplace
 
