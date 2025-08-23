@@ -1,4 +1,4 @@
-from uagents import Agent, Context, Model, Bureau
+from uagents import Agent, Context, Model, Protocol
 from typing import Dict, Any, List, Optional
 import json
 import asyncio
@@ -6,6 +6,17 @@ import aiohttp
 import logging
 from datetime import datetime
 from dataclasses import dataclass
+from uuid import uuid4
+
+# FIXED: Import chat protocol correctly
+from uagents_core.contrib.protocols.chat import (
+    ChatAcknowledgement,
+    ChatMessage,
+    EndSessionContent,
+    StartSessionContent,
+    TextContent,
+    chat_protocol_spec,
+)
 
 # Enhanced Models for better integration
 class UserJourney(Model):
@@ -20,16 +31,6 @@ class AgentResponse(Model):
     status: str
     message: str
     data: Dict[str, Any] = {}
-    error: Optional[str] = None
-
-class ICPRequest(Model):
-    method: str
-    params: Dict[str, Any]
-    user_id: str
-
-class ICPResponse(Model):
-    success: bool
-    result: Any = None
     error: Optional[str] = None
 
 class ConsultationStartRequest(Model):
@@ -48,12 +49,7 @@ class SystemHealthResponse(Model):
     icp_network: str
     timestamp: float
 
-class SystemMetricsResponse(Model):
-    metrics: Dict[str, Any]
-    active_sessions: int
-    timestamp: float
-
-class ChatMessage(Model):
+class ChatMessageLegacy(Model):
     message: str
     user_id: str
 
@@ -61,734 +57,755 @@ class ChatResponse(Model):
     reply: str
     success: bool
 
-# Enhanced Coordinator Agent
+# FIXED: Agent configuration for ASI:One compatibility
 coordinator_agent = Agent(
     name="aromance_system_coordinator",
     port=8000,
-    seed="aromance_coordinator_enhanced_2025",
+    seed="aromance_coordinator_real_agents_2025",
     endpoint=["http://127.0.0.1:8000/submit"],
 )
 
-# Agent registry with real endpoints
+# Agent registry with REAL agent addresses - PASTIKAN INI SESUAI DENGAN AGENT ANDA
 AGENT_REGISTRY = {
     "consultation": {
-        "address": "agent1qt6klnwfrlx7zr5rvghkdwkce7vvg7mzuqfgcllvxzxclpzlsf4g0a6fpu",
+        "address": "agent1qte4mymlf2upe79qlrjreemhcmarjndp8mh756wtruql4m45euj9wz4auz2",
         "endpoint": "http://127.0.0.1:8001",
-        "port": 8001
+        "port": 8001,
+        "status": "unknown"
     },
     "recommendation": {
-        "address": "agent1qvxe2usgz5fddqzuqhq8rlqrnxr8l9e8xhm9g5jfn9k4d7m6q7n2p9r8s7",
+        "address": "agent1qgkurunk708n00gdawx8u0a4qcwmtzzul09lyd372e7c5whjftrsc2xn85s",
         "endpoint": "http://127.0.0.1:8002", 
-        "port": 8002
+        "port": 8002,
+        "status": "unknown"
     },
     "analytics": {
-        "address": "agent1qw8r4t2y9u1i8o0p6a5s3d1f7g9h2j4k6l8m0n3b5v7c9x1z5q7w9e3r5t7",
+        "address": "agent1q2g2zkhqujwu6v52jlstxyeuylu8p5tvc9fp27uwunhacrj6n90tcg4nwm3",
         "endpoint": "http://127.0.0.1:8004",
-        "port": 8004
+        "port": 8004,
+        "status": "unknown"
     },
     "inventory": {
-        "address": "agent1qz2x4c6v8b0n2m5k7j9h1f3d5s7a9p1o3i5u7y9t1r3e5w7q9e2r4t6y8u0",
+        "address": "agent1qvf6kv530le2glvp239rvjy6hyu3hz8jchp6y29yp2sg2nm0rwk4x9nttnd",
         "endpoint": "http://127.0.0.1:8005",
-        "port": 8005
+        "port": 8005,
+        "status": "unknown"
     }
 }
 
-# ICP Configuration
-ICP_CONFIG = {
-    "local_endpoint": "http://127.0.0.1:4943",
-    "mainnet_endpoint": "https://ic0.app",
-    "canister_ids": {
-        "backend": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-        "frontend": "bd3sg-teaaa-aaaaa-qaaba-cai"
-    },
-    "current_network": "local"  # Switch to "mainnet" when deploying
-}
-
-# Session and metrics storage
+# Session storage for real agent communication
 active_sessions = {}
+pending_requests = {}  # Track requests waiting for agent responses
 system_metrics = {
     "total_consultations": 0,
     "successful_recommendations": 0,
-    "icp_sync_success": 0,
-    "icp_sync_failures": 0,
-    "avg_response_time": 0.0,
-    "user_satisfaction": 0.85
+    "chat_interactions": 0,
+    "agent_communications": 0,
+    "failed_agent_calls": 0
 }
 
-@coordinator_agent.on_event("startup")
-async def startup_handler(ctx: Context):
-    ctx.logger.info("🎯 Aromance Enhanced System Coordinator Started")
-    ctx.logger.info(f"Coordinator Address: {coordinator_agent.address}")
-    ctx.logger.info(f"Managing {len(AGENT_REGISTRY)} specialized agents")
-    ctx.logger.info(f"ICP Network: {ICP_CONFIG['current_network']}")
-    ctx.logger.info("Ready for intelligent fragrance discovery with full ICP integration! 🌸")
-    
-    await perform_system_health_check(ctx)
-    await test_icp_connectivity(ctx)
+# =============================================================================
+# REAL AGENT COMMUNICATION MODELS
+# =============================================================================
 
-@coordinator_agent.on_message(model=UserJourney)
-async def handle_user_journey(ctx: Context, sender: str, msg: UserJourney):
-    """Enhanced user journey handling with real agent communication"""
-    ctx.logger.info(f"🎭 User journey: {msg.user_id} at stage '{msg.current_stage}'")
-    
-    # Initialize or update session
-    if msg.session_id not in active_sessions:
-        active_sessions[msg.session_id] = {
-            "user_id": msg.user_id,
-            "current_stage": msg.current_stage,
-            "data": msg.data,
-            "last_updated": datetime.now().timestamp(),
-            "agents_involved": [],
-            "icp_sync_status": "pending"
-        }
-    else:
-        active_sessions[msg.session_id].update({
-            "current_stage": msg.current_stage,
-            "data": {**active_sessions[msg.session_id]["data"], **msg.data},
-            "last_updated": datetime.now().timestamp()
-        })
-    
-    # Route to appropriate handler
-    result = await orchestrate_user_flow(ctx, msg)
-    
-    # Send response back
-    response = AgentResponse(
-        status="success" if result else "error",
-        message="Journey orchestrated successfully" if result else "Journey orchestration failed",
-        data={"next_stage": msg.next_action}
+class ConsultationRequest(Model):
+    user_id: str
+    session_id: str
+    message: str
+    preferences: Dict[str, Any] = {}
+
+class RecommendationRequest(Model):
+    user_id: str
+    session_id: str
+    fragrance_profile: Dict[str, Any]
+    budget_range: Optional[str] = None
+
+class InventoryRequest(Model):
+    user_id: str
+    action: str  # "check_availability", "get_products", etc.
+    product_ids: List[str] = []
+    filters: Dict[str, Any] = {}
+
+class AnalyticsRequest(Model):
+    user_id: str
+    event_type: str
+    data: Dict[str, Any]
+
+# =============================================================================
+# CHAT PROTOCOL SETUP
+# =============================================================================
+
+def create_text_chat(text: str, end_session: bool = False) -> ChatMessage:
+    """Create a text chat message for response"""
+    content = [TextContent(type="text", text=text)]
+    if end_session:
+        content.append(EndSessionContent(type="end-session"))
+    return ChatMessage(
+        timestamp=datetime.utcnow(),
+        msg_id=str(uuid4()),
+        content=content,
     )
-    
-    await ctx.send(sender, response)
 
-async def orchestrate_user_flow(ctx: Context, journey: UserJourney) -> bool:
-    """Enhanced orchestration with real agent communication and ICP sync"""
+def get_aromance_welcome_message() -> str:
+    """Welcome message for new chat sessions"""
+    return """🌺 **Welcome to Aromance - Indonesian Fragrance AI Network!**
+
+I'm connecting you to our specialized AI agents for the best fragrance experience:
+
+🌸 **Consultation Agent** - Personal fragrance profiling  
+🎯 **Recommendation Agent** - AI-powered suggestions
+🛒 **Inventory Agent** - Real-time stock & purchasing
+📊 **Analytics Agent** - Market insights & trends
+
+Let me route your request to the right specialist! What can I help you with today? ✨"""
+
+# Create chat protocol
+chat_proto = Protocol(spec=chat_protocol_spec)
+
+# =============================================================================
+# REAL AGENT COMMUNICATION HANDLERS
+# =============================================================================
+
+@chat_proto.on_message(ChatMessage)
+async def handle_asi_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    """Handle ASI:One chat messages and route to real agents"""
+    ctx.logger.info(f"🔵 ASI:One message from {sender}")
     
-    stage = journey.current_stage
-    session = active_sessions[journey.session_id]
+    # Store session
+    session_key = f"session_{str(ctx.session)}"
+    ctx.storage.set(session_key, sender)
+    
+    # Send acknowledgment
+    try:
+        ack = ChatAcknowledgement(
+            timestamp=datetime.utcnow(), 
+            acknowledged_msg_id=msg.msg_id
+        )
+        await ctx.send(sender, ack)
+        ctx.logger.info(f"✅ ACK sent to {sender}")
+    except Exception as e:
+        ctx.logger.error(f"❌ Failed ACK: {e}")
+    
+    # Process content
+    for item in msg.content:
+        if isinstance(item, StartSessionContent):
+            ctx.logger.info(f"🚀 Starting session with {sender}")
+            welcome_msg = get_aromance_welcome_message()
+            
+            try:
+                response = create_text_chat(welcome_msg)
+                await ctx.send(sender, response)
+            except Exception as e:
+                ctx.logger.error(f"❌ Welcome send failed: {e}")
+                
+        elif isinstance(item, TextContent):
+            ctx.logger.info(f"💬 Processing: '{item.text}'")
+            system_metrics["chat_interactions"] += 1
+            
+            # Create user session for tracking
+            user_id = f"asi_{sender}_{int(datetime.now().timestamp())}"
+            request_id = str(uuid4())
+            
+            # Store pending request
+            pending_requests[request_id] = {
+                "sender": sender,
+                "user_id": user_id,
+                "message": item.text,
+                "timestamp": datetime.now().timestamp(),
+                "status": "processing"
+            }
+            
+            try:
+                # Route to appropriate REAL agent
+                response_text = await route_to_real_agents(ctx, item.text, user_id, request_id, sender)
+                
+                # Send response
+                response_msg = create_text_chat(response_text)
+                await ctx.send(sender, response_msg)
+                
+                # Update request status
+                if request_id in pending_requests:
+                    pending_requests[request_id]["status"] = "completed"
+                
+            except Exception as e:
+                ctx.logger.error(f"❌ Processing error: {e}")
+                error_msg = create_text_chat(
+                    f"I'm having trouble connecting to my specialist agents. Let me try a different approach... 🔄"
+                )
+                try:
+                    await ctx.send(sender, error_msg)
+                except:
+                    pass
+                
+                # Mark request as failed
+                if request_id in pending_requests:
+                    pending_requests[request_id]["status"] = "failed"
+                    
+        elif isinstance(item, EndSessionContent):
+            ctx.logger.info(f"👋 Ending session with {sender}")
+            goodbye_msg = "Thank you for using Aromance! Our agents are always here to help! 🌺"
+            try:
+                response = create_text_chat(goodbye_msg, end_session=True)
+                await ctx.send(sender, response)
+            except Exception as e:
+                ctx.logger.error(f"❌ Goodbye failed: {e}")
+
+@chat_proto.on_message(ChatAcknowledgement)
+async def handle_asi_chat_ack(ctx: Context, sender: str, msg: ChatAcknowledgement):
+    """Handle acknowledgements"""
+    ctx.logger.info(f"✅ ACK from {sender} for {msg.acknowledged_msg_id}")
+
+# =============================================================================
+# REAL AGENT ROUTING AND COMMUNICATION
+# =============================================================================
+
+async def route_to_real_agents(ctx: Context, message: str, user_id: str, request_id: str, sender: str) -> str:
+    """Route message to REAL specialized agents"""
+    
+    msg_lower = message.lower()
+    ctx.logger.info(f"🎯 Routing '{message}' to real agents for user {user_id}")
+    
+    # Intent detection and routing
+    if any(word in msg_lower for word in ["konsultasi", "consultation", "mulai", "start", "profil", "profile"]):
+        return await communicate_with_consultation_agent(ctx, user_id, message, request_id)
+        
+    elif any(word in msg_lower for word in ["rekomendasi", "recommend", "saran", "parfum", "fragrance"]):
+        return await communicate_with_recommendation_agent(ctx, user_id, message, request_id)
+        
+    elif any(word in msg_lower for word in ["beli", "buy", "stok", "stock", "purchase", "inventory"]):
+        return await communicate_with_inventory_agent(ctx, user_id, message, request_id)
+        
+    elif any(word in msg_lower for word in ["analytics", "dashboard", "laporan", "data"]):
+        return await communicate_with_analytics_agent(ctx, user_id, message, request_id)
+        
+    else:
+        # For general questions, try consultation agent first
+        return await communicate_with_consultation_agent(ctx, user_id, message, request_id)
+
+async def communicate_with_consultation_agent(ctx: Context, user_id: str, message: str, request_id: str) -> str:
+    """Communicate with REAL consultation agent"""
+    
+    agent_info = AGENT_REGISTRY["consultation"]
+    ctx.logger.info(f"📞 Calling consultation agent at {agent_info['address']}")
     
     try:
-        if stage == "consultation_complete":
-            ctx.logger.info(f"📄 Routing to recommendation agent for {journey.user_id}")
+        # First try via uAgent messaging
+        session_id = f"req_{request_id}"
+        
+        consultation_request = ConsultationRequest(
+            user_id=user_id,
+            session_id=session_id,
+            message=message,
+            preferences={"source": "asi_one", "language": "indonesian"}
+        )
+        
+        # Send to real consultation agent
+        system_metrics["agent_communications"] += 1
+        
+        try:
+            await ctx.send(agent_info["address"], consultation_request)
+            ctx.logger.info(f"✅ Sent request to consultation agent {agent_info['address']}")
             
-            # Create DID in ICP backend first
-            did_result = await sync_create_decentralized_identity(ctx, journey)
-            if not did_result:
-                ctx.logger.error("❌ Failed to create DID in ICP")
-                return False
+            # Store session for tracking
+            active_sessions[session_id] = {
+                "user_id": user_id,
+                "agent_type": "consultation",
+                "request_id": request_id,
+                "status": "pending_agent_response",
+                "timestamp": datetime.now().timestamp()
+            }
             
-            # Send to recommendation agent
-            recommendation_success = await route_to_recommendation_agent(ctx, journey)
-            if recommendation_success:
-                session["agents_involved"].append("recommendation")
-                system_metrics["total_consultations"] += 1
+            return f"""🌸 **Connecting to Consultation Specialist...**
+
+I've forwarded your request to our expert Consultation Agent who will analyze your fragrance preferences and lifestyle.
+
+📋 **What our specialist will do:**
+• Analyze your personality and lifestyle
+• Map your scent preferences  
+• Consider Indonesian climate factors
+• Create your personal fragrance profile
+
+⏰ **Processing your request...**
+Our agent is working on your consultation right now!
+
+*Session: {session_id}*
+*Request ID: {request_id}*"""
+
+        except Exception as messaging_error:
+            ctx.logger.error(f"❌ uAgent messaging failed: {messaging_error}")
             
-            return recommendation_success
-            
-        elif stage == "recommendations_generated":
-            ctx.logger.info(f"💾 Syncing recommendations to ICP backend")
-            
-            # Sync recommendations to ICP
-            sync_success = await sync_recommendations_to_icp(ctx, journey)
-            if sync_success:
-                session["icp_sync_status"] = "success"
-                system_metrics["icp_sync_success"] += 1
-            else:
-                session["icp_sync_status"] = "failed"
-                system_metrics["icp_sync_failures"] += 1
-            
-            # Update analytics
-            await route_to_analytics_agent(ctx, journey)
-            session["agents_involved"].append("analytics")
-            system_metrics["successful_recommendations"] += 1
-            
-            return sync_success
-            
-        elif stage == "purchase_initiated":
-            ctx.logger.info(f"📦 Coordinating inventory and transaction")
-            
-            # Check inventory and create transaction
-            inventory_success = await route_to_inventory_agent(ctx, journey)
-            if inventory_success:
-                transaction_success = await sync_create_transaction(ctx, journey)
-                session["agents_involved"].append("inventory")
-                return transaction_success
-            
-            return inventory_success
-            
-        else:
-            ctx.logger.warning(f"⚠️ Unknown stage: {stage}")
-            return False
+            # Fallback to HTTP if messaging fails
+            return await fallback_http_consultation(ctx, agent_info, user_id, message, session_id)
             
     except Exception as e:
-        ctx.logger.error(f"❌ Orchestration error: {e}")
-        return False
+        ctx.logger.error(f"❌ Consultation agent communication failed: {e}")
+        system_metrics["failed_agent_calls"] += 1
+        AGENT_REGISTRY["consultation"]["status"] = "error"
+        
+        return f"""⚠️ **Consultation Agent Temporarily Unavailable**
 
-async def route_to_recommendation_agent(ctx: Context, journey: UserJourney) -> bool:
-    """Route consultation results to recommendation agent"""
+I'm having trouble connecting to our Consultation specialist. 
+
+🔄 **Trying alternative approach:**
+Let me help you directly with basic fragrance guidance while our specialist comes back online.
+
+**Quick questions to get started:**
+1. What's your daily activity level? (Active/Moderate/Calm)
+2. Preferred scent strength? (Light/Medium/Strong)  
+3. Favorite scents so far? (If any)
+
+Our full consultation service will be restored shortly! 
+*Error: {str(e)[:100]}*"""
+
+async def fallback_http_consultation(ctx: Context, agent_info: Dict, user_id: str, message: str, session_id: str) -> str:
+    """Fallback HTTP communication with consultation agent"""
+    
     try:
-        agent_info = AGENT_REGISTRY["recommendation"]
+        ctx.logger.info(f"🔄 Trying HTTP fallback to {agent_info['endpoint']}")
         
-        # Prepare recommendation request
-        request_data = {
-            "user_id": journey.user_id,
-            "session_id": journey.session_id,
-            "fragrance_profile": journey.data,
-            "timestamp": datetime.now().timestamp()
-        }
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            payload = {
+                "user_id": user_id,
+                "session_id": session_id,
+                "message": message,
+                "source": "asi_one_coordinator"
+            }
+            
+            async with session.post(
+                f"{agent_info['endpoint']}/consultation/start",
+                json=payload
+            ) as response:
+                
+                if response.status == 200:
+                    result = await response.json()
+                    ctx.logger.info(f"✅ HTTP consultation success")
+                    
+                    AGENT_REGISTRY["consultation"]["status"] = "healthy"
+                    system_metrics["total_consultations"] += 1
+                    
+                    agent_response = result.get("response", {})
+                    return f"""✅ **Consultation Agent Connected!**
+
+{agent_response.get('message', 'Our specialist has received your request!')}
+
+🎯 **Current Status:** {agent_response.get('status', 'Processing')}
+
+{agent_response.get('next_steps', 'Please wait for detailed analysis...')}
+
+*Session: {session_id}*
+*Agent Response: HTTP Success*"""
+
+                else:
+                    ctx.logger.error(f"❌ HTTP consultation failed: {response.status}")
+                    response_text = await response.text()
+                    AGENT_REGISTRY["consultation"]["status"] = "error"
+                    
+                    return f"""❌ **Consultation Agent Error**
+
+HTTP Error {response.status} when connecting to consultation specialist.
+
+🔧 **Technical Details:**
+• Agent: {agent_info['endpoint']}
+• Status: {response.status}
+• Error: {response_text[:100] if response_text else 'Unknown'}
+
+Please try again or contact support if this persists."""
+                    
+    except asyncio.TimeoutError:
+        ctx.logger.error("⏰ HTTP consultation timeout")
+        AGENT_REGISTRY["consultation"]["status"] = "timeout"
+        return f"""⏰ **Consultation Agent Timeout**
+
+Our consultation specialist is taking longer than expected to respond.
+
+This could be due to:
+• High demand for consultation services
+• Agent performing complex analysis  
+• Network connectivity issues
+
+Please try again in a few moments."""
         
-        # Send via HTTP to recommendation agent
-        async with aiohttp.ClientSession() as session:
+    except Exception as http_error:
+        ctx.logger.error(f"❌ HTTP consultation error: {http_error}")
+        AGENT_REGISTRY["consultation"]["status"] = "error"
+        return f"""❌ **Unable to Connect to Consultation Agent**
+
+Technical error: {str(http_error)[:100]}
+
+Our team has been notified and is working to restore the connection."""
+
+async def communicate_with_recommendation_agent(ctx: Context, user_id: str, message: str, request_id: str) -> str:
+    """Communicate with REAL recommendation agent"""
+    
+    agent_info = AGENT_REGISTRY["recommendation"]
+    ctx.logger.info(f"📞 Calling recommendation agent at {agent_info['address']}")
+    
+    try:
+        session_id = f"rec_{request_id}"
+        
+        # Check if user has existing consultation data
+        user_sessions = [s for s in active_sessions.values() if s.get('user_id') == user_id]
+        fragrance_profile = {}
+        
+        if user_sessions:
+            fragrance_profile = user_sessions[0].get('data', {})
+        
+        recommendation_request = RecommendationRequest(
+            user_id=user_id,
+            session_id=session_id,
+            fragrance_profile=fragrance_profile,
+            budget_range="moderate"
+        )
+        
+        system_metrics["agent_communications"] += 1
+        
+        try:
+            await ctx.send(agent_info["address"], recommendation_request)
+            ctx.logger.info(f"✅ Sent to recommendation agent {agent_info['address']}")
+            
+            active_sessions[session_id] = {
+                "user_id": user_id,
+                "agent_type": "recommendation", 
+                "request_id": request_id,
+                "status": "pending_agent_response"
+            }
+            
+            return f"""🎯 **Connecting to Recommendation Specialist...**
+
+I've sent your request to our AI Recommendation Agent who will:
+
+🔍 **Analyze Your Profile:**
+• Current fragrance preferences
+• Lifestyle compatibility
+• Indonesian climate factors
+• Budget considerations
+
+🌺 **Generate Personalized Suggestions:**
+• Top 3-5 fragrance matches
+• Indonesian brand prioritization  
+• Price and availability info
+• Match confidence scores
+
+⚡ **Processing your recommendations...**
+
+*Session: {session_id}*
+*Request: {request_id}*"""
+
+        except Exception as messaging_error:
+            ctx.logger.error(f"❌ Recommendation messaging failed: {messaging_error}")
+            return await fallback_http_recommendation(ctx, agent_info, user_id, message, session_id, fragrance_profile)
+            
+    except Exception as e:
+        ctx.logger.error(f"❌ Recommendation agent error: {e}")
+        system_metrics["failed_agent_calls"] += 1
+        return f"""❌ **Recommendation Agent Unavailable**
+
+Connection error: {str(e)[:100]}
+
+🔄 **Trying backup recommendation system...**"""
+
+async def fallback_http_recommendation(ctx: Context, agent_info: Dict, user_id: str, message: str, session_id: str, profile: Dict) -> str:
+    """HTTP fallback for recommendation agent"""
+    
+    try:
+        timeout = aiohttp.ClientTimeout(total=20)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            payload = {
+                "user_id": user_id,
+                "session_id": session_id,
+                "fragrance_profile": profile,
+                "message": message
+            }
+            
             async with session.post(
                 f"{agent_info['endpoint']}/recommend",
-                json=request_data,
-                timeout=aiohttp.ClientTimeout(total=30)
+                json=payload
             ) as response:
+                
                 if response.status == 200:
                     result = await response.json()
-                    ctx.logger.info(f"✅ Recommendation request sent successfully")
-                    return True
+                    ctx.logger.info("✅ HTTP recommendation success")
+                    
+                    AGENT_REGISTRY["recommendation"]["status"] = "healthy"
+                    system_metrics["successful_recommendations"] += 1
+                    
+                    recommendations = result.get("recommendations", [])
+                    
+                    if recommendations:
+                        rec_text = "✅ **Recommendations from Specialist Agent:**\n\n"
+                        
+                        for i, rec in enumerate(recommendations[:3], 1):
+                            rec_text += f"**{i}. {rec.get('name', 'Indonesian Fragrance')}**\n"
+                            rec_text += f"• {rec.get('description', 'Premium Indonesian fragrance')}\n"
+                            rec_text += f"• Price: IDR {rec.get('price', 0):,}\n"
+                            rec_text += f"• Match Score: {rec.get('match_score', 0)*100:.0f}%\n"
+                            rec_text += f"• Agent Notes: {rec.get('agent_notes', 'Recommended for you')}\n\n"
+                        
+                        rec_text += f"*Powered by Recommendation Agent*\n*Session: {session_id}*"
+                        return rec_text
+                    else:
+                        return f"🔍 **Agent Analysis Complete**\n\nOur recommendation specialist has processed your request but needs more specific preferences to provide personalized suggestions.\n\n*Session: {session_id}*"
                 else:
-                    ctx.logger.error(f"❌ Recommendation agent error: {response.status}")
-                    return False
+                    return f"❌ **Recommendation Agent Error {response.status}**\n\nPlease try again."
                     
     except Exception as e:
-        ctx.logger.error(f"❌ Failed to route to recommendation agent: {e}")
-        return False
+        return f"❌ **Recommendation Service Temporarily Down**\n\nError: {str(e)[:100]}"
 
-async def route_to_analytics_agent(ctx: Context, journey: UserJourney) -> bool:
-    """Route data to analytics agent"""
-    try:
-        agent_info = AGENT_REGISTRY["analytics"]
-        
-        analytics_data = {
-            "user_id": journey.user_id,
-            "event_type": "recommendation_generated",
-            "recommendations_count": len(journey.data.get("recommendations", [])),
-            "personality_type": journey.data.get("profile", {}).get("personality_type"),
-            "timestamp": datetime.now().timestamp()
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_info['endpoint']}/analytics",
-                json=analytics_data,
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as response:
-                return response.status == 200
-                
-    except Exception as e:
-        ctx.logger.error(f"❌ Analytics routing failed: {e}")
-        return False
-
-async def route_to_inventory_agent(ctx: Context, journey: UserJourney) -> bool:
-    """Route to inventory agent for stock check"""
-    try:
-        agent_info = AGENT_REGISTRY["inventory"]
-        
-        inventory_request = {
-            "user_id": journey.user_id,
-            "product_ids": journey.data.get("selected_products", []),
-            "action": "check_availability"
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_info['endpoint']}/inventory",
-                json=inventory_request,
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as response:
-                return response.status == 200
-                
-    except Exception as e:
-        ctx.logger.error(f"❌ Inventory routing failed: {e}")
-        return False
-
-# ICP Integration Functions
-async def sync_create_decentralized_identity(ctx: Context, journey: UserJourney) -> bool:
-    """Create decentralized identity in ICP canister"""
-    try:
-        fragrance_identity = {
-            "personality_type": journey.data.get("personality_type", "Versatile Indonesian Character"),
-            "lifestyle": journey.data.get("lifestyle", "balanced"),
-            "preferred_families": journey.data.get("fragrance_families", ["fresh"]),
-            "occasion_preferences": journey.data.get("occasions", ["daily"]),
-            "season_preferences": ["tropical_year_round"],
-            "sensitivity_level": journey.data.get("sensitivity", "normal"),
-            "budget_range": journey.data.get("budget_range", "moderate"),
-            "scent_journey": [{
-                "date": datetime.now().timestamp(),
-                "preference_change": "Initial consultation completed",
-                "trigger_event": "AI consultation",
-                "confidence_score": 0.85
-            }]
-        }
-        
-        icp_request = {
-            "method": "create_decentralized_identity",
-            "params": {
-                "user_id": journey.user_id,
-                "personality_data": fragrance_identity
-            }
-        }
-        
-        result = await call_icp_canister(ctx, icp_request)
-        if result and result.get("success"):
-            ctx.logger.info(f"✅ DID created for user {journey.user_id}")
-            return True
-        else:
-            ctx.logger.error(f"❌ DID creation failed: {result.get('error', 'Unknown error')}")
-            return False
-            
-    except Exception as e:
-        ctx.logger.error(f"❌ DID creation error: {e}")
-        return False
-
-async def sync_recommendations_to_icp(ctx: Context, journey: UserJourney) -> bool:
-    """Sync AI recommendations to ICP canister"""
-    try:
-        icp_request = {
-            "method": "generate_ai_recommendations",
-            "params": {
-                "user_id": journey.user_id
-            }
-        }
-        
-        result = await call_icp_canister(ctx, icp_request)
-        if result and result.get("success"):
-            ctx.logger.info(f"✅ Recommendations synced for user {journey.user_id}")
-            return True
-        else:
-            ctx.logger.error(f"❌ Recommendations sync failed: {result.get('error', 'Unknown error')}")
-            return False
-            
-    except Exception as e:
-        ctx.logger.error(f"❌ Recommendations sync error: {e}")
-        return False
-
-async def sync_create_transaction(ctx: Context, journey: UserJourney) -> bool:
-    """Create transaction in ICP canister"""
-    try:
-        transaction_data = {
-            "transaction_id": f"txn_{journey.user_id}_{int(datetime.now().timestamp())}",
-            "buyer_id": journey.user_id,
-            "seller_id": journey.data.get("seller_id", "default_seller"),
-            "product_id": journey.data.get("selected_products", [""])[0],
-            "quantity": journey.data.get("quantity", 1),
-            "unit_price_idr": journey.data.get("price", 100000),
-            "total_amount_idr": journey.data.get("total_amount", 100000),
-            "commission_rate": 0.02,
-            "commission_amount": 0,
-            "transaction_tier": "Standard",
-            "status": "Pending",
-            "escrow_locked": False,
-            "payment_method": "bank_transfer",
-            "shipping_address": journey.data.get("address", "Jakarta, Indonesia"),
-            "created_at": int(datetime.now().timestamp()),
-            "completed_at": None
-        }
-        
-        icp_request = {
-            "method": "create_transaction",
-            "params": transaction_data
-        }
-        
-        result = await call_icp_canister(ctx, icp_request)
-        return result and result.get("success", False)
-        
-    except Exception as e:
-        ctx.logger.error(f"❌ Transaction creation error: {e}")
-        return False
-
-async def call_icp_canister(ctx: Context, request: Dict[str, Any]) -> Dict[str, Any]:
-    """Generic ICP canister call function"""
-    try:
-        endpoint = ICP_CONFIG["local_endpoint"] if ICP_CONFIG["current_network"] == "local" else ICP_CONFIG["mainnet_endpoint"]
-        canister_id = ICP_CONFIG["canister_ids"]["backend"]
-        
-        # For local development, use DFX HTTP gateway
-        if ICP_CONFIG["current_network"] == "local":
-            dfx_url = f"{endpoint}/?canisterId={canister_id}"
-        else:
-            dfx_url = f"{endpoint}/api/v2/canister/{canister_id}/call"
-        
-        payload = {
-            "type": "call",
-            "method_name": request["method"],
-            "args": request["params"]
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                dfx_url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=30)
-            ) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return {"success": True, "result": result}
-                else:
-                    error_text = await response.text()
-                    ctx.logger.error(f"❌ ICP call failed: {response.status} - {error_text}")
-                    return {"success": False, "error": f"HTTP {response.status}: {error_text}"}
-                    
-    except Exception as e:
-        ctx.logger.error(f"❌ ICP canister call error: {e}")
-        return {"success": False, "error": str(e)}
-
-async def test_icp_connectivity(ctx: Context):
-    """Test ICP connectivity on startup"""
-    try:
-        test_request = {
-            "method": "greet",
-            "params": {"name": "System Test"}
-        }
-        
-        result = await call_icp_canister(ctx, test_request)
-        if result.get("success"):
-            ctx.logger.info("✅ ICP connectivity test successful")
-        else:
-            ctx.logger.warning(f"⚠️ ICP connectivity issue: {result.get('error', 'Unknown error')}")
-            
-    except Exception as e:
-        ctx.logger.error(f"❌ ICP connectivity test failed: {e}")
-
-async def perform_system_health_check(ctx: Context):
-    """Enhanced system health check"""
-    ctx.logger.info("🏥 Performing enhanced system health check...")
+async def communicate_with_inventory_agent(ctx: Context, user_id: str, message: str, request_id: str) -> str:
+    """Communicate with REAL inventory agent"""
     
-    healthy_agents = []
+    agent_info = AGENT_REGISTRY["inventory"]
+    ctx.logger.info(f"📞 Calling inventory agent at {agent_info['address']}")
+    
+    try:
+        session_id = f"inv_{request_id}"
+        
+        inventory_request = InventoryRequest(
+            user_id=user_id,
+            action="check_availability",
+            product_ids=[],
+            filters={"region": "indonesia", "source": "asi_one"}
+        )
+        
+        system_metrics["agent_communications"] += 1
+        
+        await ctx.send(agent_info["address"], inventory_request)
+        ctx.logger.info(f"✅ Sent to inventory agent {agent_info['address']}")
+        
+        return f"""🛒 **Connecting to Inventory Specialist...**
+
+I've contacted our Inventory Agent who will provide:
+
+📦 **Real-Time Stock Information:**
+• Current product availability
+• Indonesian seller verification
+• Price comparisons
+• Shipping options
+
+💳 **Secure Transaction Setup:**
+• Escrow payment protection
+• Buyer guarantees
+• Authentic product verification
+
+⏳ **Checking inventory systems...**
+
+*Session: {session_id}*
+*Agent: Inventory Specialist*"""
+
+    except Exception as e:
+        ctx.logger.error(f"❌ Inventory agent error: {e}")
+        return f"""❌ **Inventory Agent Connection Failed**
+
+Error: {str(e)[:100]}
+
+🔄 **Backup inventory info available on request.**"""
+
+async def communicate_with_analytics_agent(ctx: Context, user_id: str, message: str, request_id: str) -> str:
+    """Communicate with REAL analytics agent"""
+    
+    agent_info = AGENT_REGISTRY["analytics"]
+    ctx.logger.info(f"📞 Calling analytics agent at {agent_info['address']}")
+    
+    try:
+        session_id = f"ana_{request_id}"
+        
+        analytics_request = AnalyticsRequest(
+            user_id=user_id,
+            event_type="dashboard_request",
+            data={"message": message, "source": "asi_one", "timestamp": datetime.now().timestamp()}
+        )
+        
+        system_metrics["agent_communications"] += 1
+        
+        await ctx.send(agent_info["address"], analytics_request)
+        ctx.logger.info(f"✅ Sent to analytics agent {agent_info['address']}")
+        
+        return f"""📊 **Connecting to Analytics Specialist...**
+
+I've requested data from our Analytics Agent who will provide:
+
+📈 **Real-Time Market Data:**
+• Indonesian fragrance trends
+• Popular products and brands
+• Regional preferences
+• Price analysis
+
+🎯 **System Performance:**
+• Agent network status
+• User engagement metrics
+• Success rates
+
+⚡ **Generating analytics report...**
+
+*Session: {session_id}*
+*Specialist: Analytics Agent*"""
+
+    except Exception as e:
+        ctx.logger.error(f"❌ Analytics agent error: {e}")
+        return f"""❌ **Analytics Agent Unavailable**
+
+Error: {str(e)[:100]}
+
+📊 Basic metrics available on request."""
+
+# =============================================================================
+# RESPONSE HANDLERS FROM REAL AGENTS
+# =============================================================================
+
+@coordinator_agent.on_message(model=AgentResponse)
+async def handle_agent_response(ctx: Context, sender: str, msg: AgentResponse):
+    """Handle responses from real specialized agents"""
+    ctx.logger.info(f"📥 Response from agent {sender}: {msg.status}")
+    
+    # Find pending request this response belongs to
+    matching_requests = []
+    for req_id, req_data in pending_requests.items():
+        if req_data.get("status") == "processing":
+            matching_requests.append((req_id, req_data))
+    
+    if matching_requests:
+        req_id, req_data = matching_requests[0]  # Take first pending
+        original_sender = req_data["sender"]
+        
+        try:
+            # Format response from specialized agent
+            response_text = f"""✅ **Response from {sender}:**
+
+{msg.message}
+
+**Agent Status:** {msg.status}
+**Data:** {json.dumps(msg.data, indent=2) if msg.data else 'None'}
+
+*Processed by specialized agent network*"""
+            
+            # Send back to original ASI:One user
+            response_msg = create_text_chat(response_text)
+            await ctx.send(original_sender, response_msg)
+            
+            # Mark request as completed
+            pending_requests[req_id]["status"] = "completed"
+            ctx.logger.info(f"✅ Forwarded agent response to {original_sender}")
+            
+        except Exception as e:
+            ctx.logger.error(f"❌ Failed to forward agent response: {e}")
+    
+    else:
+        ctx.logger.warning("⚠️ Received agent response with no matching pending request")
+
+# =============================================================================
+# SYSTEM HEALTH AND AGENT MONITORING
+# =============================================================================
+
+async def check_agent_health(ctx: Context):
+    """Check health of all registered agents"""
+    ctx.logger.info("🏥 Checking agent network health...")
     
     for agent_name, agent_info in AGENT_REGISTRY.items():
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{agent_info['endpoint']}/health",
-                    timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(f"{agent_info['endpoint']}/health") as response:
                     if response.status == 200:
-                        healthy_agents.append(agent_name)
+                        AGENT_REGISTRY[agent_name]["status"] = "healthy"
                         ctx.logger.info(f"✅ {agent_name} agent: Healthy")
                     else:
+                        AGENT_REGISTRY[agent_name]["status"] = f"error_{response.status}"
                         ctx.logger.error(f"❌ {agent_name} agent: HTTP {response.status}")
         except Exception as e:
-            ctx.logger.error(f"❌ {agent_name} agent: Unreachable - {e}")
+            AGENT_REGISTRY[agent_name]["status"] = "unreachable"
+            ctx.logger.error(f"❌ {agent_name} agent: {e}")
     
-    health_percentage = len(healthy_agents) / len(AGENT_REGISTRY) * 100
-    ctx.logger.info(f"🏥 System Health: {len(healthy_agents)}/{len(AGENT_REGISTRY)} agents ({health_percentage:.1f}%)")
+    healthy_count = sum(1 for agent in AGENT_REGISTRY.values() if agent["status"] == "healthy")
+    total_count = len(AGENT_REGISTRY)
+    
+    ctx.logger.info(f"🏥 Agent Health: {healthy_count}/{total_count} agents healthy")
 
-# FIXED: HTTP Endpoints using new uAgents syntax
-@coordinator_agent.on_rest_post("/api/consultation/start", ConsultationStartRequest, ConsultationStartResponse)
-async def start_consultation_endpoint(ctx: Context, req: ConsultationStartRequest) -> ConsultationStartResponse:
-    """HTTP endpoint to start consultation process"""
-    try:
-        user_id = req.user_id
-        
-        if not user_id:
-            return ConsultationStartResponse(
-                success=False,
-                session_id="",
-                error="user_id is required"
-            )
-        
-        session_id = f"session_{user_id}_{int(datetime.now().timestamp())}"
-        
-        journey = UserJourney(
-            user_id=user_id,
-            session_id=session_id,
-            current_stage="consultation_start",
-            data={"started_at": datetime.now().timestamp()},
-            next_action="begin_consultation"
-        )
-        
-        # Route to consultation agent
-        agent_info = AGENT_REGISTRY["consultation"]
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_info['endpoint']}/consultation/start",
-                json={"user_id": user_id, "session_id": session_id}
-            ) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return ConsultationStartResponse(
-                        success=True,
-                        session_id=session_id,
-                        data=result
-                    )
-                else:
-                    return ConsultationStartResponse(
-                        success=False,
-                        session_id="",
-                        error="Consultation agent unavailable"
-                    )
-                    
-    except Exception as e:
-        ctx.logger.error(f"❌ Consultation start error: {e}")
-        return ConsultationStartResponse(
-            success=False,
-            session_id="",
-            error="Internal server error"
-        )
+# =============================================================================
+# REST ENDPOINTS
+# =============================================================================
 
 @coordinator_agent.on_rest_get("/api/system/health", SystemHealthResponse)
 async def system_health_endpoint(ctx: Context) -> SystemHealthResponse:
-    """HTTP endpoint for system health"""
-    try:
-        await perform_system_health_check(ctx)
-        
-        return SystemHealthResponse(
-            status="healthy",
-            agents=AGENT_REGISTRY,
-            metrics=system_metrics,
-            icp_network=ICP_CONFIG["current_network"],
-            timestamp=datetime.now().timestamp()
-        )
-    except Exception as e:
-        return SystemHealthResponse(
-            status="error",
-            agents={},
-            metrics={},
-            icp_network="unknown",
-            timestamp=datetime.now().timestamp()
-        )
-
-@coordinator_agent.on_rest_get("/api/system/metrics", SystemMetricsResponse)
-async def system_metrics_endpoint(ctx: Context) -> SystemMetricsResponse:
-    """HTTP endpoint for system metrics"""
-    return SystemMetricsResponse(
+    """System health including real agent status"""
+    await check_agent_health(ctx)
+    
+    return SystemHealthResponse(
+        status="healthy" if any(agent["status"] == "healthy" for agent in AGENT_REGISTRY.values()) else "degraded",
+        agents=AGENT_REGISTRY,
         metrics=system_metrics,
-        active_sessions=len(active_sessions),
+        icp_network="local",
         timestamp=datetime.now().timestamp()
     )
 
-@coordinator_agent.on_interval(period=300.0)  # Every 5 minutes
-async def periodic_maintenance(ctx: Context):
-    """Periodic system maintenance and monitoring"""
+@coordinator_agent.on_rest_post("/chat", ChatMessageLegacy, ChatResponse)
+async def handle_legacy_chat(ctx: Context, req: ChatMessageLegacy) -> ChatResponse:
+    """Legacy chat endpoint"""
+    try:
+        ctx.logger.info(f"📱 Legacy chat: {req.message}")
+        
+        request_id = str(uuid4())
+        user_id = f"legacy_{req.user_id}"
+        
+        response = await route_to_real_agents(ctx, req.message, user_id, request_id, f"legacy_{req.user_id}")
+        return ChatResponse(reply=response, success=True)
+        
+    except Exception as e:
+        ctx.logger.error(f"❌ Legacy chat error: {e}")
+        return ChatResponse(reply=f"System error: {str(e)[:100]}", success=False)
+
+# =============================================================================
+# PERIODIC MAINTENANCE
+# =============================================================================
+
+@coordinator_agent.on_interval(period=120.0)  # Every 2 minutes
+async def periodic_agent_health_check(ctx: Context):
+    """Regularly check agent health"""
+    await check_agent_health(ctx)
     
-    # Health check
-    await perform_system_health_check(ctx)
-    
-    # Clean expired sessions (older than 2 hours)
+    # Clean old pending requests (older than 5 minutes)
     current_time = datetime.now().timestamp()
-    expired_sessions = [
-        session_id for session_id, session in active_sessions.items()
-        if current_time - session["last_updated"] > 7200  # 2 hours
+    expired_requests = [
+        req_id for req_id, req_data in pending_requests.items()
+        if current_time - req_data["timestamp"] > 300
     ]
     
-    for session_id in expired_sessions:
-        del active_sessions[session_id]
+    for req_id in expired_requests:
+        del pending_requests[req_id]
     
-    if expired_sessions:
-        ctx.logger.info(f"🧹 Cleaned up {len(expired_sessions)} expired sessions")
+    if expired_requests:
+        ctx.logger.info(f"🧹 Cleaned {len(expired_requests)} expired requests")
     
-    # Log system metrics
+    # Log metrics
     ctx.logger.info(f"📊 Active sessions: {len(active_sessions)}")
-    ctx.logger.info(f"📈 Total consultations: {system_metrics['total_consultations']}")
-    ctx.logger.info(f"💾 ICP sync success rate: {system_metrics['icp_sync_success']}/{system_metrics['icp_sync_success'] + system_metrics['icp_sync_failures']}")
+    ctx.logger.info(f"⏳ Pending requests: {len(pending_requests)}")
+    ctx.logger.info(f"🤝 Agent communications: {system_metrics['agent_communications']}")
+    ctx.logger.info(f"❌ Failed agent calls: {system_metrics['failed_agent_calls']}")
 
-#ASI:One related code
-# WELCOME MESSAGE
-def get_welcome_message() -> str:
-    """Default welcome message"""
-    return """🌺 **Welcome to Aromance!**
+# =============================================================================
+# STARTUP AND PROTOCOL INCLUSION
+# =============================================================================
 
-I'm your AI assistant for Indonesian fragrance consultation. I can help with:
+coordinator_agent.include(chat_proto, publish_manifest=True)
 
-💐 **"consultation"** - Personal fragrance profiling
-🎯 **"recommendation"** - Fragrance suggestions based on personality  
-🛒 **"buy"** - Secure purchase information
-📊 **"analytics"** - System dashboard (for sellers)
-
-Which one would you like to start with? Type the command above! ✨"""
-
-# Main chat endpoint for ASI:One
-@coordinator_agent.on_rest_post("/chat", ChatMessage, ChatResponse)
-async def handle_asi_chat(ctx: Context, req: ChatMessage) -> ChatResponse:
-    try:
-        reply = await route_chat_message(ctx, req.message, req.user_id)
-        return ChatResponse(reply=reply, success=True)
-    except Exception as e:
-        ctx.logger.error(f"Chat error: {e}")
-        return ChatResponse(reply="Maaf, ada masalah sistem. Coba lagi ya!", success=False)
-
-# Route chat to appropriate agent
-async def route_chat_message(ctx: Context, message: str, user_id: str) -> str:
-    msg = message.lower()
+@coordinator_agent.on_event("startup")
+async def startup_handler(ctx: Context):
+    ctx.logger.info("🚀 Aromance Real Agent Coordinator Started!")
+    ctx.logger.info(f"📍 Coordinator Address: {coordinator_agent.address}")
+    ctx.logger.info(f"🔗 Endpoint: http://127.0.0.1:8000")
+    ctx.logger.info(f"🌐 Managing {len(AGENT_REGISTRY)} real specialized agents:")
     
-    # 1. CONSULTATION - route to consultation agent
-    if any(word in msg for word in ["konsultasi", "consultation", "mulai", "start", "profil", "profile"]):
-        return await route_to_consultation_chat(ctx, user_id)
+    for agent_name, agent_info in AGENT_REGISTRY.items():
+        ctx.logger.info(f"  • {agent_name}: {agent_info['address']} ({agent_info['endpoint']})")
     
-    # 2. RECOMMENDATION - route to recommendation agent  
-    elif any(word in msg for word in ["rekomendasi", "recommend", "saran", "parfum", "fragrance", "suggest"]):
-        return await route_to_recommendation_chat(ctx, user_id)
+    ctx.logger.info("✅ Ready for REAL agent communication via ASI:One! 🌺")
     
-    # 3. PURCHASE/INVENTORY - route to inventory agent
-    elif any(word in msg for word in ["beli", "buy", "pesan", "order", "stok", "stock", "purchase"]):
-        return await route_to_inventory_chat(ctx, user_id)
+    # Initial health check
+    await check_agent_health(ctx)
     
-    # 4. ANALYTICS - for seller
-    elif any(word in msg for word in ["analytics", "laporan", "data", "seller", "dashboard"]):
-        return await route_to_analytics_chat(ctx, user_id)
-    
-    # 5. GREETING/INFO
-    else:
-        return get_welcome_message()
-    
-#  Route to consultation agent via HTTP
-async def route_to_consultation_chat(ctx: Context, user_id: str) -> str:
-    try:
-        agent_endpoint = AGENT_REGISTRY["consultation"]["endpoint"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_endpoint}/consultation/start",
-                json={"user_id": user_id, "session_id": f"chat_{user_id}_{int(datetime.now().timestamp())}"},
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    return f"""✅ Fragrance consultation started!
-
-{result.get('response', {}).get('response', 'Let me help you find the perfect fragrance for you!')}
-
-Please answer the following questions to create your personal fragrance profile 🌸"""
-                
-                else:
-                    return "❌ Consultation agent is not ready. Please try again later!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Consultation routing error: {e}")
-        return "❌ Failed to start consultation. System is under maintenance!"
-
-# ROUTE to RECOMMENDATION AGENT
-async def route_to_recommendation_chat(ctx: Context, user_id: str) -> str:
-    """Route to recommendation agent via HTTP"""
-    try:
-        user_sessions = [s for s in active_sessions.values() if s['user_id'] == user_id]
-        
-        if not user_sessions:
-            return """For accurate recommendations, I need your profile first 🤔
-
-Type "start consultation" to get:
-• Analysis of your fragrance personality
-• Lifestyle-based recommendations  
-• Best Indonesian fragrance suggestions
-
-Or would you like to see our general catalog?"""
-
-        agent_endpoint = AGENT_REGISTRY["recommendation"]["endpoint"]
-        
-        user_profile = user_sessions[0]["data"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_endpoint}/recommend",
-                json={
-                    "user_id": user_id,
-                    "session_id": user_sessions[0].get("session_id", ""),
-                    "fragrance_profile": user_profile
-                },
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    recommendations = result.get('recommendations', [])
-                    
-                    if recommendations:
-                        rec_text = "🌺 **Fragrance Recommendations for You:**\n\n"
-                        for i, rec in enumerate(recommendations[:3], 1):
-                            rec_text += f"{i}. **{rec.get('name', 'Unknown')}**\n"
-                            rec_text += f"   - {rec.get('description', 'Premium fragrance')}\n"
-                            rec_text += f"   - Price: IDR {rec.get('price', 0):,}\n\n"
-                        
-                        rec_text += "Want more details or ready to 'buy'? 🛒"
-                        return rec_text
-                    else:
-                        return "No suitable recommendations found yet. Try updating your consultation profile?"
-                
-                else:
-                    return "❌ Recommendation agent is busy. Please try again later!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Recommendation routing error: {e}")
-        return "❌ Failed to get recommendations. Please refresh your profile!"
-
-# ROUTE to INVENTORY AGENT
-async def route_to_inventory_chat(ctx: Context, user_id: str) -> str:
-    """Route to inventory agent via HTTP"""
-    try:
-        agent_endpoint = AGENT_REGISTRY["inventory"]["endpoint"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{agent_endpoint}/inventory",
-                json={
-                    "user_id": user_id,
-                    "action": "check_availability",
-                    "product_ids": []
-                },
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                
-                if response.status == 200:
-                    return """🛒 **How to Buy Aromance Fragrances:**
-
-1️⃣ **Choose Product** - from recommendations or catalog
-2️⃣ **Check Stock** - real-time availability confirmation
-3️⃣ **Escrow Payment** - secure payment via system
-4️⃣ **Delivery** - tracking until it reaches your address
-
-**Transaction Security:**
-✅ Money secured by system until goods arrive
-✅ All sellers are verified
-✅ Money back guarantee
-
-Do you have a specific product in mind or want to see recommendations first?"""
-                
-                else:
-                    return "❌ Inventory system under maintenance. Purchase information temporarily unavailable!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Inventory routing error: {e}")
-        return "❌ Failed to access purchase information. Please try again later!"
-
-# ROUTE to ANALYTICS AGENT - for seller
-async def route_to_analytics_chat(ctx: Context, user_id: str) -> str:
-    try:
-        agent_endpoint = AGENT_REGISTRY["analytics"]["endpoint"]
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{agent_endpoint}/analytics/dashboard",
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    dashboard = result.get('dashboard', {})
-                    
-                    return f"""📊 **Aromance Dashboard:**
-
-**System Status:**
-• Total Users: {dashboard.get('total_users', 0)}
-• Active Consultations: {len(active_sessions)}  
-• Available Products: {dashboard.get('total_products', 0)}
-
-**Performance:**
-• Success Rate: {system_metrics.get('user_satisfaction', 0.85)*100:.1f}%
-• Avg Response Time: {system_metrics.get('avg_response_time', 0.0):.2f}s
-
-Need more detailed analytics information?"""
-                
-                else:
-                    return "Analytics data is being updated. Please try again later!"
-                    
-    except Exception as e:
-        ctx.logger.error(f"Analytics routing error: {e}")
-        return "❌ Analytics not available at the moment."
+    # Set startup metrics
+    system_metrics["startup_time"] = datetime.now().timestamp()
+    system_metrics["coordinator_address"] = str(coordinator_agent.address)
 
 if __name__ == "__main__":
     coordinator_agent.run()
