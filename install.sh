@@ -82,7 +82,7 @@ if [[ ! -d "fetchai_env" ]]; then
 fi
 source fetchai_env/bin/activate
 pip install --upgrade pip
-pip install uagents cosmpy requests asyncio
+pip install uagents cosmpy requests asyncio httpx
 success "Python environment ready."
 
 # Install root dependencies

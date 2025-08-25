@@ -60,6 +60,7 @@ Our coordinator agent implements a sophisticated chat protocol using Claude API 
 | **AI Agents** | Python | 3.12.3 | Agent Runtime |
 | | Fetch.ai uAgents | Framework | Multi-Agent System |
 | | CosmPy | - | Blockchain Integration |
+| | httpx | 0.28.1 | Async HTTP Client for agent communication |
 | **Development** | Node.js | 20.19.4 | JavaScript Runtime |
 | | DFX | 0.24.3 | ICP SDK |
 | | Ubuntu | 24.04.2 LTS | Development OS |
@@ -97,7 +98,7 @@ chmod +x install.sh
 
 > **⚠️ Python Installation Note**: If you encounter "externally managed" Python environment error, you may need to install packages manually:
 > ```bash
-> pip install --break-system-packages uagents cosmpy requests asyncio
+> pip install --break-system-packages uagents cosmpy requests asyncio httpx
 > ```
 
 ### 🏃‍♂️ Development Workflow
