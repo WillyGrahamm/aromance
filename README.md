@@ -119,7 +119,7 @@ dfx deploy aromance_backend
 ```bash
 source fetchai_env/bin/activate
 cd agents
-python coordinator.py  # Main coordinator
+python run_all_agent.py  # Main coordinator
 # Or run individual agents:
 python consultation/consultation_agent.py
 python recommendation/recommendation_agent.py
@@ -145,7 +145,7 @@ npm start
 
 ```bash
 # Test AI agents health (use 0.0.0.0 for testing)
-curl http://127.0.0.1:8001/health  # Coordinator Agent
+curl http://127.0.0.1:8000/health  # Coordinator Agent
 curl http://127.0.0.1:8002/health  # Consultation Agent
 curl http://127.0.0.1:8003/health  # Recommendation Agent
 curl http://127.0.0.1:8004/health  # Analytics Agent
@@ -190,7 +190,8 @@ Our platform implements five specialized autonomous agents, all categorized unde
 
 | **Agent Name** | **Address** | **Primary Function** |
 |----------------|-------------|---------------------|
-| **Coordinator Agent** | `[ADDRESS_TO_BE_FILLED]` | Main orchestrator managing all agent communications |
+| **Coordinator Agent** | `agent1q0c3gfhhufskvm0tfssj05y6exkfwckea9400sr2luj6l98da8n8ykxssyd` | Main orchestrator managing all agent communications |
+| **Coordinator Bridge** | ` agent1q059hp8a78xnuwg6673kantmgsu0m5yvcr34483l5nsvfyfqk778wnwe65z` | Frontend-Backend Bridge |
 | **Consultation Agent** | `agent1qte4mymlf2upe79qlrjreemhcmarjndp8mh756wtruql4m45euj9wz4auz2` | Personality analysis and preference extraction |
 | **Recommendation Agent** | `agent1qgkurunk708n00gdawx8u0a4qcwmtzzul09lyd372e7c5whjftrsc2xn85s` | AI-powered product matching algorithm |
 | **Analytics Agent** | `agent1q2g2zkhqujwu6v52jlstxyeuylu8p5tvc9fp27uwunhacrj6n90tcg4nwm3` | User behavior tracking and market insights |
@@ -207,7 +208,6 @@ Our platform implements five specialized autonomous agents, all categorized unde
 ### Agent Communication Protocol
 
 Our coordinator agent implements a sophisticated chat protocol that:
-- Uses Claude API for natural language processing
 - Extracts and routes messages between specialized agents
 - Maintains conversation context across agent interactions
 - Provides seamless user experience through intelligent orchestration
