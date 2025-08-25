@@ -27,11 +27,12 @@ The platform uses a sophisticated multi-layer architecture integrating three cut
 
 ```mermaid
 graph TD
-    A[React Frontend] --> B[Fetch.ai Agents Layer]
+    A[React Frontend] --> B[Coordinator Bridge -> Agents Layer]
     B --> C[ICP Canisters Backend]
     C --> D[Decentralized Storage]
     
-    B1[Coordinator Agent] --> B2[Consultation Agent]
+    B --> B1[Coordinator Agent]
+    B1 --> B2[Consultation Agent]
     B1 --> B3[Recommendation Agent]
     B1 --> B4[Analytics Agent]
     B1 --> B5[Inventory Agent]
@@ -76,7 +77,7 @@ Our coordinator agent implements a sophisticated chat protocol using Claude API 
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/WillyGrahamm/aromance.git
+git clone https://github.com/WillyGrahamm/aromance
 cd aromance
 ```
 
@@ -143,11 +144,11 @@ npm start
 
 ```bash
 # Test AI agents health (use 0.0.0.0 for testing)
-curl http://0.0.0.0:8001/health  # Coordinator Agent
-curl http://0.0.0.0:8002/health  # Consultation Agent
-curl http://0.0.0.0:8003/health  # Recommendation Agent
-curl http://0.0.0.0:8004/health  # Analytics Agent
-curl http://0.0.0.0:8005/health  # Inventory Agent
+curl http://127.0.0.1:8001/health  # Coordinator Agent
+curl http://127.0.0.1:8002/health  # Consultation Agent
+curl http://127.0.0.1:8003/health  # Recommendation Agent
+curl http://127.0.0.1:8004/health  # Analytics Agent
+curl http://127.0.0.1:8005/health  # Inventory Agent
 
 # Test ICP canister
 dfx canister call aromance_backend greet '("Hello Aromance")'
@@ -189,10 +190,10 @@ Our platform implements five specialized autonomous agents, all categorized unde
 | **Agent Name** | **Address** | **Primary Function** |
 |----------------|-------------|---------------------|
 | **Coordinator Agent** | `[ADDRESS_TO_BE_FILLED]` | Main orchestrator managing all agent communications |
-| **Consultation Agent** | `[ADDRESS_TO_BE_FILLED]` | Personality analysis and preference extraction |
-| **Recommendation Agent** | `[ADDRESS_TO_BE_FILLED]` | AI-powered product matching algorithm |
-| **Analytics Agent** | `[ADDRESS_TO_BE_FILLED]` | User behavior tracking and market insights |
-| **Inventory Agent** | `[ADDRESS_TO_BE_FILLED]` | Stock monitoring and restock predictions |
+| **Consultation Agent** | `agent1qte4mymlf2upe79qlrjreemhcmarjndp8mh756wtruql4m45euj9wz4auz2` | Personality analysis and preference extraction |
+| **Recommendation Agent** | `agent1qgkurunk708n00gdawx8u0a4qcwmtzzul09lyd372e7c5whjftrsc2xn85s` | AI-powered product matching algorithm |
+| **Analytics Agent** | `agent1q2g2zkhqujwu6v52jlstxyeuylu8p5tvc9fp27uwunhacrj6n90tcg4nwm3` | User behavior tracking and market insights |
+| **Inventory Agent** | `agent1qvf6kv530le2glvp239rvjy6hyu3hz8jchp6y29yp2sg2nm0rwk4x9nttnd` | Stock monitoring and restock predictions |
 
 ### Advanced Agent Features
 
@@ -302,7 +303,9 @@ aromance/
 │   ├── 🎯 recommendation/       # Product matching engine
 │   ├── 📊 analytics/           # User behavior analysis
 │   ├── 📦 inventory/           # Stock management
-│   └── 🧪 test_agent.py        # Testing utilities (809B)
+│   ├── 🗃️ coordinator_agent       # Root Of All Agent & Chat protocol
+│   ├── ⚙️ coordinator_bridge      # Agents Layer
+│   └── 🧪 run_all_agent.py        # Testing all agent utilities (809B)
 ├── 📁 src/
 │   ├── 🦀 aromance_backend/    # Rust ICP canister
 │   │   ├── 📄 src/lib.rs       # Backend implementation
@@ -324,7 +327,8 @@ This project is licensed under the MIT License – see the [license](https://aro
 ## 📞 Contact & Links
 
 - **🌐 Landing Page**: https://aromance-e56c8.web.app/
-- **📋 Project Proposal**: https://aromance-e56c8.web.app/Aromance-Resources.pdf
+- **🗂️ Pitch Deck**: https://aromance-e56c8.web.app/PD_Aromance.pdf
+- **📋 Project Proposal/Full Documentation**: https://aromance-e56c8.web.app/Aromance-Resources.pdf
 - **🏆 DoraHacks BUIDL**: https://dorahacks.io/buidl/31403
 - **📧 Email**: willygraham2009@gmail.com
 - **💻 GitHub**: https://github.com/WillyGrahamm/aromance

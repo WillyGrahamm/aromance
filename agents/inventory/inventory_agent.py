@@ -5,28 +5,13 @@ import aiohttp
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 
-class InventoryUpdate(Model):
-    product_id: str
-    action: str  # "add", "update", "remove", "restock", "check_availability"
-    data: Dict[str, Any]
+# Updated Models for uAgents REST API
+class InventoryRequest(Model):
+    user_id: str
+    action: str
+    product_ids: List[str] = []
+    filters: Dict[str, Any] = {}
 
-class InventoryQuery(Model):
-    seller_id: str
-    filters: Optional[Dict[str, Any]] = None
-
-class InventoryResponse(Model):
-    products: List[Dict[str, Any]]
-    total_count: int
-    low_stock_alerts: List[str]
-    recommendations: List[str]
-
-class StockAlert(Model):
-    product_id: str
-    current_stock: int
-    recommended_restock: int
-    urgency_level: str
-
-# NEW: REST endpoint models using new uAgents syntax
 class InventoryActionRequest(Model):
     user_id: str
     product_ids: List[str]
@@ -61,6 +46,19 @@ class HealthCheckResponse(Model):
     low_stock_products: int
     icp_connected: bool
     timestamp: float
+
+# Internal models for processing
+class StockAlert(Model):
+    product_id: str
+    current_stock: int
+    recommended_restock: int
+    urgency_level: str
+
+class AgentResponse(Model):
+    status: str
+    message: str
+    data: Dict[str, Any] = {}
+    error: Optional[str] = None
 
 inventory_agent = Agent(
     name="aromance_inventory_ai",
@@ -1110,7 +1108,7 @@ async def startup_handler(ctx: Context):
     # Perform initial stock check
     await perform_stock_health_check(ctx)
 
-# FIXED: HTTP Endpoints using new uAgents syntax
+# REST Endpoints using new uAgents syntax
 @inventory_agent.on_rest_post("/inventory", InventoryActionRequest, InventoryActionResponse)
 async def inventory_action_endpoint(ctx: Context, req: InventoryActionRequest) -> InventoryActionResponse:
     """HTTP endpoint for inventory actions"""
@@ -1197,7 +1195,7 @@ async def get_seller_inventory_endpoint(ctx: Context, req) -> SellerInventoryRes
 
 @inventory_agent.on_rest_get("/inventory/alerts", InventoryAlertsResponse)
 async def get_inventory_alerts_endpoint(ctx: Context) -> InventoryAlertsResponse:
-    """Get all inventory alerts - FIXED tanpa parameter req"""
+    """Get all inventory alerts"""
     try:
         all_products = list(inventory_database.values())
         alerts = generate_stock_alerts(all_products)
@@ -1241,7 +1239,7 @@ async def get_inventory_alerts_endpoint(ctx: Context) -> InventoryAlertsResponse
 
 @inventory_agent.on_rest_get("/inventory/recommendations", InventoryRecommendationsResponse)
 async def get_inventory_recommendations_endpoint(ctx: Context) -> InventoryRecommendationsResponse:
-    """Get inventory management recommendations - FIXED tanpa parameter req"""
+    """Get inventory management recommendations"""
     try:
         all_products = list(inventory_database.values())
         recommendations = generate_inventory_recommendations(all_products)
@@ -1270,7 +1268,7 @@ async def get_inventory_recommendations_endpoint(ctx: Context) -> InventoryRecom
 
 @inventory_agent.on_rest_get("/health", HealthCheckResponse)
 async def health_check_endpoint(ctx: Context) -> HealthCheckResponse:
-    """Health check endpoint - FIXED tanpa parameter req yang bermasalah"""
+    """Health check endpoint"""
     try:
         total_products = len(inventory_database)
         low_stock_count = sum(1 for p in inventory_database.values() if p["stock_quantity"] <= p["min_stock_threshold"])
@@ -1292,67 +1290,63 @@ async def health_check_endpoint(ctx: Context) -> HealthCheckResponse:
             icp_connected=False,
             timestamp=datetime.now().timestamp()
         )
-
-# Agent Message Handling
-@inventory_agent.on_message(model=InventoryUpdate)
-async def handle_inventory_update(ctx: Context, sender: str, msg: InventoryUpdate):
-    ctx.logger.info(f"📦 Inventory {msg.action} for product {msg.product_id}")
     
-    if msg.action == "add":
-        inventory_database[msg.product_id] = msg.data
-        ctx.logger.info(f"✅ Product {msg.product_id} added to inventory")
+@inventory_agent.on_message(model=InventoryRequest)
+async def handle_inventory_request(ctx: Context, sender: str, msg: InventoryRequest):
+    """Handle inventory requests from CoordinatorAgent.py"""
+    ctx.logger.info(f"📦 Inventory request from {sender} for user {msg.user_id}: action={msg.action}, products={msg.product_ids}")
+    
+    try:
+        data = {}  # Collect response data
+        if msg.action == "check_availability":
+            availability = await check_product_availability(ctx, msg.product_ids)
+            data["availability"] = availability
+            message = "Availability checked successfully"
         
-    elif msg.action == "update":
-        if msg.product_id in inventory_database:
-            inventory_database[msg.product_id].update(msg.data)
-            ctx.logger.info(f"✅ Product {msg.product_id} updated")
+        elif msg.action == "get_products":
+            products = list(inventory_database.values())
+            filtered_products = apply_inventory_filters(products, msg.filters)
+            data["products"] = filtered_products
+            message = "Products retrieved successfully"
         
-    elif msg.action == "remove":
-        if msg.product_id in inventory_database:
-            del inventory_database[msg.product_id]
-            ctx.logger.info(f"✅ Product {msg.product_id} removed")
+        elif msg.action == "reserve_products":
+            quantity = msg.filters.get("quantity", 1)
+            reservation = await reserve_products(ctx, msg.product_ids, quantity, msg.user_id)
+            data["reservation"] = reservation
+            message = "Products reserved successfully"
+        
+        elif msg.action == "release_reservation":
+            release = await release_product_reservation(ctx, msg.product_ids, msg.user_id)
+            data["release"] = release
+            message = "Reservations released successfully"
+        
+        else:
+            raise ValueError(f"Unknown action: {msg.action}")
+        
+        response = AgentResponse(
+            status="success",
+            message=message,
+            data={
+                "user_id": msg.user_id,
+                "action": msg.action,
+                "timestamp": datetime.now().timestamp(),
+                **data
+            }
+        )
+        await ctx.send(sender, response)
+        ctx.logger.info(f"✅ Inventory response sent to coordinator for user {msg.user_id}")
     
-    elif msg.action == "restock":
-        if msg.product_id in inventory_database:
-            new_quantity = msg.data.get("quantity", 0)
-            inventory_database[msg.product_id]["stock_quantity"] += new_quantity
-            inventory_database[msg.product_id]["last_restocked"] = int(datetime.now().timestamp())
-            ctx.logger.info(f"✅ Product {msg.product_id} restocked with {new_quantity} units")
-    
-    # Generate stock alerts if needed
-    await check_stock_levels(ctx, msg.product_id)
-    
-    # Sync to ICP
-    await sync_inventory_to_icp(ctx, msg.product_id, msg.action, msg.data)
+    except Exception as e:
+        ctx.logger.error(f"❌ Inventory processing error: {e}")
+        error_response = AgentResponse(
+            status="error",
+            message="Inventory request processing failed",
+            data={"user_id": msg.user_id, "action": msg.action},
+            error=str(e)
+        )
+        await ctx.send(sender, error_response)
 
-@inventory_agent.on_message(model=InventoryQuery)
-async def handle_inventory_query(ctx: Context, sender: str, msg: InventoryQuery):
-    ctx.logger.info(f"📋 Inventory query from seller {msg.seller_id}")
-    
-    # Filter products by seller
-    seller_products = [
-        product for product in inventory_database.values()
-        if product.get("seller_id") == msg.seller_id
-    ]
-    
-    # Apply additional filters if provided
-    if msg.filters:
-        seller_products = apply_inventory_filters(seller_products, msg.filters)
-    
-    # Generate alerts and recommendations
-    low_stock_alerts = generate_stock_alerts(seller_products)
-    recommendations = generate_inventory_recommendations(seller_products)
-    
-    response = InventoryResponse(
-        products=seller_products,
-        total_count=len(seller_products),
-        low_stock_alerts=low_stock_alerts,
-        recommendations=recommendations
-    )
-    
-    await ctx.send(sender, response)
-
-# Core Inventory Functions
+# Core Business Logic Functions
 async def check_product_availability(ctx: Context, product_ids: List[str]) -> Dict[str, Any]:
     """Check availability of specific products"""
     
@@ -1661,7 +1655,8 @@ async def perform_stock_health_check(ctx: Context):
     if critical_products > 0:
         ctx.logger.warning(f"⚠️ {critical_products} products need immediate attention")
 
-# ICP Integration Functions
+# ICP Integration Functions (All preserved)
+
 async def sync_inventory_to_icp(ctx: Context, product_id: str, action: str, data: Dict[str, Any]) -> bool:
     """Sync inventory changes to ICP canister"""
     

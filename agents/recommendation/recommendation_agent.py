@@ -10,8 +10,7 @@ class RecommendationRequest(Model):
     user_id: str
     session_id: str
     fragrance_profile: Dict[str, Any]
-    budget_max: Optional[int] = None
-    specific_request: Optional[str] = None
+    budget_range: Optional[str] = None
 
 class RecommendationHTTPRequest(Model):
     user_id: str
@@ -52,6 +51,12 @@ class HealthResponse(Model):
     database_products: int
     icp_connected: bool
     timestamp: float
+
+class AgentResponse(Model):
+    status: str
+    message: str
+    data: Dict[str, Any] = {}
+    error: Optional[str] = None
 
 recommendation_agent = Agent(
     name="aromance_recommendation_ai",
@@ -1030,7 +1035,7 @@ async def startup_handler(ctx: Context):
     ctx.logger.info(f"Database loaded: {len(INDONESIAN_FRAGRANCE_DATABASE)} products")
     ctx.logger.info("Ready for intelligent fragrance recommendations with ICP integration! 💎")
 
-# HTTP Endpoints - Fixed format
+# HTTP Endpoints
 @recommendation_agent.on_rest_post("/recommend", RecommendationHTTPRequest, RecommendationResponse)
 async def recommend_endpoint(ctx: Context, req: RecommendationHTTPRequest) -> RecommendationResponse:
     """HTTP endpoint for generating recommendations"""
@@ -1084,7 +1089,6 @@ async def recommend_endpoint(ctx: Context, req: RecommendationHTTPRequest) -> Re
 async def get_user_recommendations_endpoint(ctx: Context, user_id: str) -> UserRecommendationsResponse:
     """Get existing recommendations for a user"""
     try:
-        # Try to get from ICP first
         icp_recommendations = await get_recommendations_from_icp(ctx, user_id)
         
         if icp_recommendations:
@@ -1115,36 +1119,46 @@ async def health_check_endpoint(ctx: Context) -> HealthResponse:
         timestamp=datetime.now().timestamp()
     )
 
-# Agent Message Handling
 @recommendation_agent.on_message(model=RecommendationRequest)
 async def handle_recommendation_request(ctx: Context, sender: str, msg: RecommendationRequest):
-    ctx.logger.info(f"🔍 Processing recommendation for user {msg.user_id}")
+    """Handle recommendation requests from CoordinatorAgent.py"""
+    ctx.logger.info(f"🎯 Recommendation request from {sender}")
     
-    profile = msg.fragrance_profile
-    ctx.logger.info(f"Profile: {profile.get('personality_traits', 'Unknown')}")
-    
-    # Generate intelligent recommendations
-    recommendations = await generate_intelligent_recommendations(ctx, profile, msg.budget_max)
-    
-    # Sync to ICP backend
-    icp_synced = await sync_recommendations_to_icp(ctx, msg.user_id, recommendations)
-    
-    # Create explanation and alternatives
-    explanation = create_recommendation_explanation(profile, recommendations)
-    alternatives = generate_alternative_suggestions(profile, recommendations)
-    
-    response = RecommendationResponse(
-        user_id=msg.user_id,
-        session_id=msg.session_id,
-        recommendations=recommendations,
-        total_found=len(recommendations),
-        explanation=explanation,
-        alternative_suggestions=alternatives,
-        icp_synced=icp_synced
-    )
-    
-    ctx.logger.info(f"✅ Generated {len(recommendations)} recommendations")
-    await ctx.send(sender, response)
+    try:
+        # Your existing recommendation logic
+        recommendations = await generate_intelligent_recommendations(
+            profile=msg.fragrance_profile,
+            budget=msg.budget_range
+        )
+        
+        # Send standardized response
+        response = AgentResponse(
+            status="success", 
+            message=f"Generated {len(recommendations)} recommendations for user {msg.user_id}",
+            data={
+                "recommendations": recommendations,
+                "session_id": msg.session_id,
+                "total_matches": len(recommendations),
+                "budget_range": msg.budget_range,
+                "agent_type": "recommendation"
+            }
+        )
+        
+        await ctx.send(sender, response)
+        ctx.logger.info(f"✅ Recommendations sent to coordinator")
+        
+    except Exception as e:
+        ctx.logger.error(f"❌ Recommendation error: {e}")
+        
+        error_response = AgentResponse(
+            status="error",
+            message=f"Recommendation generation failed: {str(e)[:100]}",
+            data={"session_id": msg.session_id},
+            error=str(e)
+        )
+        
+        await ctx.send(sender, error_response)
+
 
 async def generate_intelligent_recommendations(ctx: Context, profile: Dict, budget_max: Optional[int]) -> List[ProductRecommendation]:
     """Generate intelligent fragrance recommendations using enhanced AI analysis"""

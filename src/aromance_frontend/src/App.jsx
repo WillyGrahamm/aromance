@@ -4,7 +4,7 @@ import { Principal } from '@dfinity/principal';
 import './App.css';
 
 // ICP Backend Integration
-const CANISTER_ID = process.env.CANISTER_ID_AROMANCE_BACKEND || 'bkyz2-fmaaa-aaaaa-qaaaq-cai';
+const CANISTER_ID = process.env.CANISTER_ID_AROMANCE_BACKEND || 'uxrrr-q7777-77774-qaaaq-cai';
 const HOST = process.env.DFX_NETWORK === 'ic' ? 'https://icp-api.io' : 'http://localhost:4943';
 
 // Main Wallet Address for all transactions
@@ -474,6 +474,7 @@ const App = () => {
   // Backend States
   const [actor, setActor] = useState(null);
   const [backendConnected, setBackendConnected] = useState(false);
+  const BRIDGE_ENDPOINT = 'http://127.0.0.1:8080';
   
   // Error States
   const [error, setError] = useState(null);
@@ -483,26 +484,32 @@ const App = () => {
     const initBackend = async () => {
       try {
         setLoading(true);
-        const agent = new HttpAgent({ host: HOST });
         
+        // Check bridge health
+        const bridgeHealthResponse = await fetch(`${BRIDGE_ENDPOINT}/api/health`);
+        if (!bridgeHealthResponse.ok) {
+          throw new Error('Bridge not available');
+        }
+        const bridgeHealth = await bridgeHealthResponse.json();
+        setBackendConnected(bridgeHealth.ic_backend_connected);
+
+        // Initialize ICP agent only for direct canister calls
+        const agent = new HttpAgent({ host: HOST });
         if (process.env.DFX_NETWORK !== 'ic') {
           await agent.fetchRootKey();
         }
-
         const backendActor = Actor.createActor(idlFactory, {
           agent,
           canisterId: CANISTER_ID,
         });
-
         setActor(backendActor);
-        setBackendConnected(true);
 
-        // Load initial data
-        await loadInitialData(backendActor);
+        // Load initial data through bridge
+        await loadInitialData();
         await checkAgentHealth();
         
       } catch (error) {
-        console.error('Failed to connect to backend:', error);
+        console.error('Failed to initialize backend:', error);
         setError('Failed to connect to backend. Some features may not work.');
         setBackendConnected(false);
       } finally {
@@ -557,14 +564,20 @@ const App = () => {
     try {
       setProductsLoading(true);
       
-      // Load all products
-      const allProducts = await backendActor.get_products();
-      setProducts(allProducts);
-      setOtherProducts(allProducts.slice(0, 8)); // Initial 8 products
-      
-      // Load platform statistics
-      const stats = await backendActor.get_platform_statistics();
-      setPlatformStats(stats);
+      // Load products through bridge
+      const productsResponse = await fetch(`${BRIDGE_ENDPOINT}/api/ic/products`, { method: 'GET' });
+      if (productsResponse.ok) {
+        const { products } = await productsResponse.json();
+        setProducts(products);
+        setOtherProducts(products.slice(0, 8));
+      }
+
+      // Load platform stats through bridge
+      const statsResponse = await fetch(`${BRIDGE_ENDPOINT}/api/ic/platform_stats`, { method: 'GET' });
+      if (statsResponse.ok) {
+        const stats = await statsResponse.json();
+        setPlatformStats(stats);
+      }
       
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -574,33 +587,40 @@ const App = () => {
   };
 
   const loadUserData = async () => {
-    if (!actor || !userWallet) return;
+    if (!userWallet) return;
 
     try {
       setProfileLoading(true);
       
-      // Load user profile
-      const profile = await actor.get_user_profile(userWallet);
-      if (profile.length > 0) {
-        const userProfile = profile[0];
-        setUserProfile(userProfile);
-        setTempUsername(userProfile.user_id); // Use user_id as default username
-        setConsultationCompleted(userProfile.consultation_completed);
-        
-        if (userProfile.did && userProfile.did.length > 0) {
-          setUserDID(userProfile.did[0]);
+      // Load user profile through bridge
+      const profileResponse = await fetch(`${BRIDGE_ENDPOINT}/api/ic/user/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_data: { user_id: userWallet } })
+      });
+      if (profileResponse.ok) {
+        const { user_id, success } = await profileResponse.json();
+        if (success) {
+          const userProfile = await (await fetch(`${BRIDGE_ENDPOINT}/api/ic/user/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userWallet })
+          })).json();
+          setUserProfile(userProfile);
+          setTempUsername(userProfile.user_id);
+          setConsultationCompleted(userProfile.consultation_completed);
+          if (userProfile.did) {
+            setUserDID(userProfile.did);
+          }
         }
-        
-        // Load user-specific data
-        await Promise.all([
-          loadUserRecommendations(),
-          loadUserOrders(),
-          sendAnalyticsEvent('user_profile_loaded', {})
-        ]);
-      } else {
-        // Create new user profile with all required fields
-        await createNewUserProfile();
       }
+
+      // Load user-specific data
+      await Promise.all([
+        loadUserRecommendations(),
+        loadUserOrders(),
+        sendAnalyticsEvent('user_profile_loaded', {})
+      ]);
     } catch (error) {
       console.error('Error loading user data:', error);
       setError('Failed to load user data');
@@ -791,64 +811,43 @@ const App = () => {
   };
 
   const loadUserRecommendations = async () => {
-    if (!actor || !userWallet) return;
+    if (!userWallet) return;
 
     try {
       setRecommendationsLoading(true);
-      
-      // Load AI recommendations
-      const recommendations = await actor.get_recommendations_for_user(userWallet);
-      if (recommendations.length > 0) {
-        // Sort by match_score descending
-        const sortedRecs = recommendations.sort((a, b) => b.match_score - a.match_score);
-        setAiRecommendations(sortedRecs);
-        
-        // Split into sections based on score
-        setTopRecommendations(sortedRecs.slice(0, 6)); // Top 6 AI picks
-        
-        // Get recommended product details
-        const recProductIds = sortedRecs.map(r => r.product_id);
-        const recProducts = products.filter(p => recProductIds.includes(p.id));
-        setPersonalizedProducts(recProducts.slice(6, 18)); // Next 12 as "You Might Like"
-        
-        // Send analytics event
-        await sendAnalyticsEvent('recs_loaded', {
-          recommendations_count: recommendations.length,
-          personality_type: consultationData?.personality_type || 'unknown'
-        });
+      const response = await fetch(`${BRIDGE_ENDPOINT}/api/ic/recommendations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userWallet })
+      });
+      if (response.ok) {
+        const { recommendations } = await response.json();
+        setAiRecommendations(recommendations);
+        setTopRecommendations(recommendations);
       }
     } catch (error) {
-      console.log('No recommendations available yet');
+      console.error('Error loading recommendations:', error);
     } finally {
       setRecommendationsLoading(false);
     }
   };
 
   const loadUserOrders = async () => {
-    if (!actor || !userWallet) return;
+    if (!userWallet) return;
 
     try {
       setOrdersLoading(true);
-      const transactions = await actor.get_user_transactions(userWallet);
-      
-      // Convert transactions to orders format
-      const ordersList = await Promise.all(transactions.map(async (tx) => {
-        const product = products.find(p => p.id === tx.product_id);
-        return {
-          id: tx.transaction_id,
-          product: product,
-          quantity: Number(tx.quantity),
-          total: Number(tx.total_amount_idr),
-          date: new Date(Number(tx.created_at) / 1000000).toISOString(),
-          status: tx.status.hasOwnProperty('Completed') ? 'completed' : 
-                   tx.status.hasOwnProperty('Pending') ? 'pending' : 'processing',
-          canReview: tx.status.hasOwnProperty('Completed')
-        };
-      }));
-      
-      setOrders(ordersList);
+      const response = await fetch(`${BRIDGE_ENDPOINT}/api/ic/transactions/get`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userWallet })
+      });
+      if (response.ok) {
+        const { transactions } = await response.json();
+        setOrders(transactions);
+      }
     } catch (error) {
-      console.error('Error loading user orders:', error);
+      console.error('Error loading orders:', error);
     } finally {
       setOrdersLoading(false);
     }
@@ -871,34 +870,32 @@ const App = () => {
   };
 
   const performSearch = async (query) => {
-    if (!actor || !query.trim()) return;
-    
     try {
       setSearchLoading(true);
+      const searchParams = {
+        fragrance_family: query.includes('fresh') ? 'Fresh' : query.includes('floral') ? 'Floral' : null,
+        budget_min: query.includes('budget') ? 0 : query.includes('premium') ? 200000 : null,
+        budget_max: query.includes('budget') ? 50000 : query.includes('premium') ? 500000 : null,
+        occasion: query.includes('daily') ? 'Daily Work' : query.includes('evening') ? 'Evening Date' : null,
+        season: query.includes('spring') ? 'Spring' : query.includes('summer') ? 'Summer' : null,
+        longevity: query.includes('long lasting') ? { Good: null } : null,
+        verified_only: query.includes('verified') ? true : null
+      };
       
-      // Use advanced search
-      const results = await actor.search_products_advanced(
-        [], // fragrance_family
-        [], // budget_min
-        [], // budget_max
-        [], // occasion
-        [], // season
-        [], // longevity
-        [] // verified_only
-      );
+      const response = await fetch(`${BRIDGE_ENDPOINT}/api/ic/products/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ search_params: searchParams, user_id: userWallet || 'anonymous' })
+      });
       
-      // Filter by name/brand locally for now (can be enhanced)
-      const filtered = results.filter(p => 
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.brand.toLowerCase().includes(query.toLowerCase()) ||
-        p.fragrance_family.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      setSearchResults(filtered);
-      setShowSearchResults(true);
-      
+      if (response.ok) {
+        const { product } = await response.json();
+        setSearchResults(product);
+        setShowSearchResults(true);
+      }
     } catch (error) {
       console.error('Search failed:', error);
+      setError('Search failed. Please try again.');
     } finally {
       setSearchLoading(false);
     }
@@ -962,59 +959,45 @@ const App = () => {
 
   const completeConsultation = async (consultationData) => {
     if (!actor || !userWallet) return;
-    
+
     try {
       setConsultationLoading(true);
       
-      // Create Decentralized Identity in backend
-      const fragranceIdentity = {
-        personality_type: consultationData.personality_type || 'confident_modern',
-        lifestyle: consultationData.lifestyle || 'professional',
-        preferred_families: consultationData.fragrance_families || ['fresh', 'floral'],
-        occasion_preferences: consultationData.occasions || ['daily_work', 'evening_date'],
-        season_preferences: consultationData.seasons || ['spring', 'summer'],
-        sensitivity_level: consultationData.sensitivity || 'medium',
-        budget_range: { Moderate: null }, // Using variant
-        scent_journey: consultationData.scent_journey || [],
-      };
-      
-      const result = await actor.create_decentralized_identity(userWallet, fragranceIdentity);
-      
-      if (result.Ok) {
-        const did = result.Ok;
-        setUserDID(did.identity_hash);
-        setConsultationData(consultationData);
-        setConsultationCompleted(true);
-        setShowAIConsultation(false);
-        
-        // Update user profile to mark consultation as completed
-        const updatedProfile = {
-          ...userProfile,
-          consultation_completed: true,
-          did: [did.identity_hash],
-          last_active: BigInt(Date.now() * 1000000),
-        };
-        
-        await actor.create_user_profile(updatedProfile);
-        setUserProfile(updatedProfile);
-        
-        // Generate AI recommendations
-        await generateAIRecommendations();
-        
-        // Send analytics event
-        await sendAnalyticsEvent('consultation_completed', {
-          personality_type: consultationData.personality_type
-        });
-        
-      } else {
-        throw new Error(result.Err);
+      // Send consultation data through bridge
+      const response = await fetch(`${BRIDGE_ENDPOINT}/api/ic/identity/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userWallet,
+          fragrance_identity: {
+            personality_type: consultationData.personality_type,
+            lifestyle: consultationData.lifestyle,
+            preferred_families: consultationData.fragrance_families,
+            occasion_preferences: consultationData.occasions,
+            season_preferences: consultationData.seasons,
+            sensitivity_level: consultationData.sensitivity,
+            budget_range: { [consultationData.budget_range]: null },
+            scent_journey: consultationData.scent_journey
+          }
+        })
+      });
+
+      if (response.ok) {
+        const { success, identity } = await response.json();
+        if (success) {
+          setUserDID(identity.identity_hash);
+          setConsultationCompleted(true);
+          setConsultationData(consultationData);
+          await loadUserRecommendations();
+          await sendAnalyticsEvent('consultation_completed', consultationData);
+        }
       }
-      
     } catch (error) {
       console.error('Error completing consultation:', error);
-      setError('Failed to complete consultation. Please try again.');
+      setError('Failed to complete AI consultation');
     } finally {
       setConsultationLoading(false);
+      setShowAIConsultation(false);
     }
   };
 
@@ -1215,75 +1198,50 @@ const App = () => {
 
   const checkout = async () => {
     if (!actor || !userWallet || cart.length === 0) return;
-    
+
     try {
       setCheckoutLoading(true);
       
-      // Check inventory for all items
-      const productIds = cart.map(item => item.id);
-      const inventoryCheck = await fetch(`${AGENT_ENDPOINTS.inventory}/inventory`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userWallet,
-          product_ids: productIds,
-          action: 'check_availability'
-        })
-      });
-      
-      if (!inventoryCheck.ok) {
-        throw new Error('Some products are not available');
-      }
-      
-      // Create transactions for each item
+      const now = BigInt(Date.now() * 1000000);
       for (const item of cart) {
-        const totalAmount = Number(item.price_idr) * item.quantity;
-        const commissionRate = calculateCommissionRate(totalAmount);
-        const commissionAmount = Math.floor(totalAmount * commissionRate);
-        
         const transaction = {
-          transaction_id: `tx_${Date.now()}_${item.id}_${Math.random().toString(36).substr(2, 9)}`,
+          transaction_id: `tx_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           buyer_id: userWallet,
           seller_id: item.seller_id,
           product_id: item.id,
           quantity: item.quantity,
-          unit_price_idr: BigInt(item.price_idr),
-          total_amount_idr: BigInt(totalAmount),
-          commission_rate: commissionRate,
-          commission_amount: BigInt(commissionAmount),
-          transaction_tier: calculateTransactionTier(totalAmount),
-          status: { Completed: null },
-          escrow_locked: false,
-          payment_method: 'Plug Wallet',
-          shipping_address: 'To be provided by user',
-          created_at: BigInt(Date.now() * 1000000),
-          completed_at: [BigInt(Date.now() * 1000000)],
+          unit_price_idr: item.price_idr,
+          total_amount_idr: item.price_idr * item.quantity,
+          commission_rate: 0.05,
+          commission_amount: Math.floor(item.price_idr * item.quantity * 0.05),
+          transaction_tier: { Standard: null },
+          status: { Pending: null },
+          escrow_locked: true,
+          payment_method: 'ICP',
+          shipping_address: 'TBD',
+          created_at: now,
+          completed_at: [],
         };
-        
-        const result = await actor.create_transaction(transaction);
-        if (result.Err) {
-          throw new Error(`Transaction failed for ${item.name}: ${result.Err}`);
+
+        const response = await fetch(`${BRIDGE_ENDPOINT}/api/ic/transactions/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transaction })
+        });
+
+        if (response.ok) {
+          const { transaction_id } = await response.json();
+          await processPayment(BigInt(transaction.total_amount_idr + transaction.commission_amount));
+          setOrders(prev => [...prev, transaction]);
         }
       }
-      
-      const totalCheckout = getTotalPrice();
-      
-      // Clear cart and reload orders
+
       setCart([]);
-      await loadUserOrders();
       setShowCart(false);
-      
-      // Send analytics
-      await sendAnalyticsEvent('checkout_success', {
-        total_amount: totalCheckout,
-        items_count: cart.length
-      });
-      
-      alert('Checkout successful! Check your order history.');
-      
+      await sendAnalyticsEvent('checkout_completed', { cart });
     } catch (error) {
-      console.error('Error during checkout:', error);
-      setError('Failed to complete checkout. Please try again.');
+      console.error('Checkout failed:', error);
+      setError('Checkout failed. Please try again.');
     } finally {
       setCheckoutLoading(false);
     }

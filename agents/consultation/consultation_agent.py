@@ -1,10 +1,22 @@
 from uagents import Agent, Context, Model
 from typing import List, Dict, Any, Optional
 import json
-import aiohttp
 from datetime import datetime
 
-# Updated Models for uAgents REST API
+# ALIGNED MODELS WITH COORDINATOR
+class ConsultationRequest(Model):
+    user_id: str
+    session_id: str
+    message: str
+    preferences: Dict[str, Any] = {}
+
+class AgentResponse(Model):
+    status: str
+    message: str
+    data: Dict[str, Any] = {}
+    error: Optional[str] = None
+
+# REST API Models (for direct HTTP access)
 class ConsultationStartRequest(Model):
     user_id: str
     session_id: str
@@ -22,23 +34,13 @@ class ConsultationMessageResponse(Model):
     success: bool
     response: Dict[str, Any]
 
-class ProfileResponse(Model):
-    success: bool
-    profile: Optional[Dict[str, Any]]
-
 class HealthResponse(Model):
     status: str
     active_sessions: int
     created_profiles: int
     timestamp: float
 
-# Enhanced Models (unchanged)
-class ChatMessage(Model):
-    user_id: str
-    session_id: str
-    message: str
-    timestamp: int
-
+# Internal processing models
 class ChatResponse(Model):
     user_id: str
     session_id: str
@@ -66,7 +68,7 @@ consultation_agent = Agent(
     endpoint=["http://127.0.0.1:8001/submit"]
 )
 
-# Enhanced Indonesian Fragrance Knowledge Base (unchanged)
+# Enhanced Indonesian Fragrance Knowledge Base
 FRAGRANCE_FAMILIES = {
     "fresh": {
         "aliases": ["fresh", "segar", "bersih", "light", "ringan", "citrus"],
@@ -126,9 +128,108 @@ fragrance_profiles = {}
 async def startup_handler(ctx: Context):
     ctx.logger.info("🌸 Aromance Enhanced Consultation Agent Started")
     ctx.logger.info(f"Agent Address: {consultation_agent.address}")
-    ctx.logger.info("Ready for intelligent fragrance consultation with full integration! 🇮🇩")
+    ctx.logger.info("Ready for intelligent fragrance consultation! 🇮🇩")
 
-# Fixed REST Endpoints using new uAgents syntax
+# MAIN MESSAGE HANDLER - Receives requests from Coordinator
+@consultation_agent.on_message(model=ConsultationRequest)
+async def handle_consultation_request(ctx: Context, sender: str, msg: ConsultationRequest):
+    """Handle consultation requests from coordinator"""
+    ctx.logger.info(f"📨 Consultation request from {sender} for user {msg.user_id}")
+    
+    try:
+        # Check if session exists, if not create one
+        session_id = msg.session_id
+        if session_id not in user_sessions:
+            user_sessions[session_id] = {
+                "session_id": session_id,
+                "user_id": msg.user_id,
+                "conversation_history": [],
+                "collected_data": {},
+                "current_focus": "greeting",
+                "consultation_progress": 0.0,
+                "started_at": datetime.now().timestamp()
+            }
+            
+            # First interaction - welcome message
+            response_text = """Hello! 🌸 I'm your Aromance AI consultant specializing in Indonesian fragrance culture. 
+
+I'll help you discover the perfect scent that matches your personality and lifestyle. Let's start - do you have any favorite scents or perfumes you've tried before?
+
+🌺 I understand Indonesian preferences and our tropical climate
+🎯 I'll create a personalized fragrance profile just for you"""
+            
+            follow_ups = [
+                "Tell me about your favorite perfume experience",
+                "I'm new to perfumes, help me explore", 
+                "I prefer fresh and light fragrances",
+                "I like long-lasting, bold scents"
+            ]
+            
+            progress = 0.1
+            next_step = "fragrance_preference_discovery"
+            collected_data = {}
+            
+        else:
+            # Continue existing conversation
+            session = user_sessions[session_id]
+            chat_response = await process_consultation_message(ctx, session, msg.message)
+            
+            response_text = chat_response.response
+            follow_ups = chat_response.follow_up_questions
+            progress = chat_response.consultation_progress
+            next_step = chat_response.next_step
+            collected_data = chat_response.data_collected
+            
+            # Update session
+            session["consultation_progress"] = progress
+            session["current_focus"] = next_step
+            session["collected_data"].update(collected_data)
+            session["conversation_history"].append({
+                "timestamp": int(datetime.now().timestamp()),
+                "user_message": msg.message,
+                "ai_response": response_text,
+                "focus": session["current_focus"]
+            })
+        
+        # Create response to send back to coordinator
+        response = AgentResponse(
+            status="success",
+            message=response_text,
+            data={
+                "session_id": session_id,
+                "user_id": msg.user_id,
+                "follow_up_questions": follow_ups,
+                "consultation_progress": progress,
+                "next_step": next_step,
+                "collected_data": collected_data,
+                "agent_type": "consultation",
+                "timestamp": datetime.now().timestamp()
+            }
+        )
+        
+        # Send response back to coordinator
+        await ctx.send(sender, response)
+        ctx.logger.info(f"✅ Consultation response sent to coordinator for user {msg.user_id}")
+        
+    except Exception as e:
+        ctx.logger.error(f"❌ Consultation processing error: {e}")
+        
+        # Send error response
+        error_response = AgentResponse(
+            status="error",
+            message="I apologize, but I encountered an error processing your consultation. Please try again.",
+            data={
+                "session_id": msg.session_id,
+                "user_id": msg.user_id,
+                "error_details": str(e)[:200],
+                "agent_type": "consultation"
+            },
+            error=str(e)
+        )
+        
+        await ctx.send(sender, error_response)
+
+# REST ENDPOINTS (for direct HTTP access if needed)
 @consultation_agent.on_rest_post("/consultation/start", ConsultationStartRequest, ConsultationStartResponse)
 async def start_consultation_endpoint(ctx: Context, req: ConsultationStartRequest) -> ConsultationStartResponse:
     """HTTP endpoint to start consultation"""
@@ -161,7 +262,7 @@ async def start_consultation_endpoint(ctx: Context, req: ConsultationStartReques
             "follow_up_questions": [
                 "Tell me about your favorite perfume experience",
                 "I'm new to perfumes, help me explore",
-                "I prefer fresh and light fragrances",
+                "I prefer fresh and light fragrances", 
                 "I like long-lasting, bold scents"
             ],
             "data_collected": {},
@@ -202,13 +303,6 @@ async def consultation_message_endpoint(ctx: Context, req: ConsultationMessageRe
             )
         
         # Process message
-        chat_message = ChatMessage(
-            user_id=user_id,
-            session_id=session_id,
-            message=message,
-            timestamp=int(datetime.now().timestamp())
-        )
-        
         response = await process_consultation_message(ctx, user_sessions[session_id], message)
         
         # Update session
@@ -217,7 +311,7 @@ async def consultation_message_endpoint(ctx: Context, req: ConsultationMessageRe
         session["current_focus"] = response.next_step
         session["collected_data"].update(response.data_collected)
         session["conversation_history"].append({
-            "timestamp": chat_message.timestamp,
+            "timestamp": int(datetime.now().timestamp()),
             "user_message": message,
             "ai_response": response.response,
             "focus": session["current_focus"]
@@ -245,33 +339,7 @@ async def health_check_endpoint(ctx: Context) -> HealthResponse:
         timestamp=datetime.now().timestamp()
     )
 
-# Agent Message Handling (unchanged)
-@consultation_agent.on_message(model=ChatMessage)
-async def handle_chat_consultation(ctx: Context, sender: str, msg: ChatMessage):
-    ctx.logger.info(f"💬 Chat from user {msg.user_id}: {msg.message}")
-    
-    if msg.session_id not in user_sessions:
-        # Initialize session if not exists
-        user_sessions[msg.session_id] = {
-            "session_id": msg.session_id,
-            "user_id": msg.user_id,
-            "conversation_history": [],
-            "collected_data": {},
-            "current_focus": "greeting",
-            "consultation_progress": 0.0,
-            "started_at": datetime.now().timestamp()
-        }
-    
-    session = user_sessions[msg.session_id]
-    response = await process_consultation_message(ctx, session, msg.message)
-    
-    # Update session
-    session["consultation_progress"] = response.consultation_progress
-    session["current_focus"] = response.next_step
-    session["collected_data"].update(response.data_collected)
-    
-    await ctx.send(sender, response)
-
+# BUSINESS LOGIC FUNCTIONS
 async def process_consultation_message(ctx: Context, session: Dict, user_message: str) -> ChatResponse:
     """Enhanced message processing with intelligent analysis"""
     
@@ -478,12 +546,9 @@ async def handle_sensitivity_check(session: Dict, message: str, collected_data: 
     # Create comprehensive fragrance profile
     profile = create_fragrance_profile(session["user_id"], collected_data)
     
-    # Notify coordinator about completion
-    await notify_coordinator_consultation_complete(session, collected_data)
-    
     response_text = f"✨ Perfect! Your consultation is complete. I've created your personalized fragrance identity: "
     response_text += f"'{profile.personality_type}' with a preference for {', '.join(profile.preferred_families[:2])} families. "
-    response_text += f"I'm now generating intelligent recommendations specifically curated for your unique profile! 🎯"
+    response_text += f"Your profile is ready for personalized recommendations! 🎯"
     
     return ChatResponse(
         user_id=session["user_id"],
@@ -511,7 +576,7 @@ async def finalize_consultation(session: Dict, collected_data: Dict) -> ChatResp
         response=response_text,
         follow_up_questions=[
             "Show my recommendations now",
-            "Explain my fragrance personality",
+            "Explain my fragrance personality", 
             "Start a new consultation"
         ],
         data_collected={},
@@ -519,34 +584,7 @@ async def finalize_consultation(session: Dict, collected_data: Dict) -> ChatResp
         next_step="consultation_complete"
     )
 
-async def notify_coordinator_consultation_complete(session: Dict, collected_data: Dict):
-    """Notify coordinator that consultation is complete"""
-    try:
-        coordinator_endpoint = "http://127.0.0.1:8000"
-        
-        journey_data = {
-            "user_id": session["user_id"],
-            "session_id": session["session_id"],
-            "current_stage": "consultation_complete",
-            "data": collected_data,
-            "next_action": "generate_recommendations",
-            "timestamp": int(datetime.now().timestamp())
-        }
-        
-        async with aiohttp.ClientSession() as http_session:
-            async with http_session.post(
-                f"{coordinator_endpoint}/user_journey",
-                json=journey_data,
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as response:
-                if response.status == 200:
-                    print(f"✅ Coordinator notified for user {session['user_id']}")
-                else:
-                    print(f"❌ Failed to notify coordinator: {response.status}")
-                    
-    except Exception as e:
-        print(f"❌ Coordinator notification error: {e}")
-
+# ANALYSIS FUNCTIONS
 def analyze_fragrance_preferences(message: str) -> List[str]:
     """Analyze message for fragrance family keywords"""
     detected = []

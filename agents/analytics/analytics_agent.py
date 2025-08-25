@@ -4,7 +4,7 @@ import json
 import aiohttp
 from datetime import datetime, timedelta
 
-# Updated Models for uAgents REST API
+# REST API Models for uAgents
 class AnalyticsEventRequest(Model):
     user_id: str
     event_type: str
@@ -33,31 +33,17 @@ class HealthResponse(Model):
     icp_connected: bool
     timestamp: float
 
-# Original Models (unchanged)
+# Coordinator Integration Models
 class AnalyticsRequest(Model):
-    seller_id: str
-    time_period: str  # "daily", "weekly", "monthly"
-    metrics_requested: List[str]
-
-class AnalyticsResponse(Model):
-    seller_id: str
-    time_period: str
-    metrics: Dict[str, Any]
-    insights: List[str]
-    recommendations: List[str]
-
-class UserAnalyticsEvent(Model):
     user_id: str
     event_type: str
-    recommendations_count: int
-    personality_type: str
-    timestamp: int
+    data: Dict[str, Any]
 
-class MarketTrendAnalysis(Model):
-    trending_families: List[str]
-    seasonal_patterns: Dict[str, float]
-    competitor_analysis: Dict[str, Any]
-    price_recommendations: Dict[str, int]
+class AgentResponse(Model):
+    status: str
+    message: str
+    data: Dict[str, Any] = {}
+    error: Optional[str] = None
 
 analytics_agent = Agent(
     name="aromance_analytics_ai",
@@ -91,7 +77,7 @@ async def startup_handler(ctx: Context):
     ctx.logger.info(f"Agent Address: {analytics_agent.address}")
     ctx.logger.info("Ready to provide intelligent business analytics with ICP integration! 📈")
 
-# Fixed REST Endpoints using new uAgents syntax
+# REST Endpoints
 @analytics_agent.on_rest_post("/analytics", AnalyticsEventRequest, AnalyticsEventResponse)
 async def analytics_event_endpoint(ctx: Context, req: AnalyticsEventRequest) -> AnalyticsEventResponse:
     """HTTP endpoint to record analytics events"""
@@ -126,21 +112,17 @@ async def analytics_event_endpoint(ctx: Context, req: AnalyticsEventRequest) -> 
         )
         
     except Exception as e:
-        ctx.logger.error(f"❌ Analytics event error: {e}")
+        ctx.logger.error(f"⚠ Analytics event error: {e}")
         return AnalyticsEventResponse(
             success=False,
             message="Internal server error"
         )
 
 @analytics_agent.on_rest_get("/analytics/seller/{seller_id}", SellerAnalyticsResponse)
-async def get_seller_analytics_endpoint(ctx: Context) -> SellerAnalyticsResponse:
+async def get_seller_analytics_endpoint(ctx: Context, seller_id: str) -> SellerAnalyticsResponse:
     """Get analytics data for a specific seller"""
     try:
-        # Extract seller_id from the endpoint path
-        # Note: In the new uAgents REST API, path parameters need to be handled differently
-        # For now, we'll use a placeholder approach
-        seller_id = "demo_seller"  # This would need to be extracted from path
-        time_period = "monthly"  # This would need to be extracted from query params
+        time_period = "monthly"  # Default
         
         # Generate analytics metrics
         metrics = await generate_seller_analytics(ctx, seller_id, time_period)
@@ -159,7 +141,7 @@ async def get_seller_analytics_endpoint(ctx: Context) -> SellerAnalyticsResponse
         )
         
     except Exception as e:
-        ctx.logger.error(f"❌ Seller analytics error: {e}")
+        ctx.logger.error(f"⚠ Seller analytics error: {e}")
         return SellerAnalyticsResponse(
             success=False,
             data={"error": "Internal server error"}
@@ -176,7 +158,7 @@ async def get_market_trends_endpoint(ctx: Context) -> MarketTrendsResponse:
         )
         
     except Exception as e:
-        ctx.logger.error(f"❌ Market trends error: {e}")
+        ctx.logger.error(f"⚠ Market trends error: {e}")
         return MarketTrendsResponse(
             success=False,
             trends={"error": "Internal server error"}
@@ -193,7 +175,7 @@ async def get_dashboard_metrics_endpoint(ctx: Context) -> DashboardMetricsRespon
         )
         
     except Exception as e:
-        ctx.logger.error(f"❌ Dashboard metrics error: {e}")
+        ctx.logger.error(f"⚠ Dashboard metrics error: {e}")
         return DashboardMetricsResponse(
             success=False,
             dashboard={"error": "Internal server error"}
@@ -209,43 +191,71 @@ async def health_check_endpoint(ctx: Context) -> HealthResponse:
         timestamp=datetime.now().timestamp()
     )
 
-# Agent Message Handling (unchanged)
+# Coordinator Integration
 @analytics_agent.on_message(model=AnalyticsRequest)
 async def handle_analytics_request(ctx: Context, sender: str, msg: AnalyticsRequest):
-    ctx.logger.info(f"📊 Analytics request from seller {msg.seller_id}")
+    """Handle analytics requests from CoordinatorAgent.py"""
+    ctx.logger.info(f"📊 Analytics request from {sender}: {msg.event_type}")
     
-    # Generate analytics based on subscription tier
-    metrics = await generate_seller_analytics(ctx, msg.seller_id, msg.time_period)
-    insights = generate_business_insights(metrics, msg.seller_id)
-    recommendations = generate_actionable_recommendations(metrics, insights)
-    
-    response = AnalyticsResponse(
-        seller_id=msg.seller_id,
-        time_period=msg.time_period,
-        metrics=metrics,
-        insights=insights,
-        recommendations=recommendations
-    )
-    
-    ctx.logger.info(f"✅ Analytics generated for {msg.seller_id}")
-    await ctx.send(sender, response)
+    try:
+        if msg.event_type == "data_request":
+            analytics_data = await generate_analytics_report(msg.data)
+            
+            response = AgentResponse(
+                status="success",
+                message="Analytics report generated successfully",
+                data={
+                    "analytics": analytics_data,
+                    "event_type": msg.event_type,
+                    "user_id": msg.user_id,
+                    "agent_type": "analytics",
+                    "report_timestamp": datetime.now().timestamp()
+                }
+            )
+            
+        elif msg.event_type == "dashboard_request":
+            dashboard_data = await create_dashboard_data(msg.user_id, msg.data)
+            
+            response = AgentResponse(
+                status="success", 
+                message="Dashboard data compiled",
+                data={
+                    "dashboard": dashboard_data,
+                    "user_id": msg.user_id,
+                    "agent_type": "analytics"
+                }
+            )
+            
+        else:
+            # Handle other analytics events
+            result = await process_analytics_event_data(msg.event_type, msg.data)
+            
+            response = AgentResponse(
+                status="success",
+                message=f"Analytics event '{msg.event_type}' processed",
+                data={
+                    "result": result,
+                    "event_type": msg.event_type,
+                    "agent_type": "analytics"
+                }
+            )
+        
+        await ctx.send(sender, response)
+        ctx.logger.info(f"✅ Analytics response sent to coordinator")
+        
+    except Exception as e:
+        ctx.logger.error(f"⚠ Analytics error: {e}")
+        
+        error_response = AgentResponse(
+            status="error",
+            message=f"Analytics processing failed: {str(e)[:100]}",
+            data={"event_type": msg.event_type, "user_id": msg.user_id},
+            error=str(e)
+        )
+        
+        await ctx.send(sender, error_response)
 
-@analytics_agent.on_message(model=UserAnalyticsEvent)
-async def handle_user_analytics_event(ctx: Context, sender: str, msg: UserAnalyticsEvent):
-    """Handle incoming user analytics events"""
-    ctx.logger.info(f"📈 Analytics event: {msg.event_type} for user {msg.user_id}")
-    
-    event_data = {
-        "user_id": msg.user_id,
-        "event_type": msg.event_type,
-        "recommendations_count": msg.recommendations_count,
-        "personality_type": msg.personality_type,
-        "timestamp": msg.timestamp
-    }
-    
-    await process_analytics_event(ctx, event_data)
-    await sync_analytics_to_icp(ctx, event_data)
-
+# Core Business Logic Functions
 async def process_analytics_event(ctx: Context, event_data: Dict):
     """Process and store analytics event"""
     
@@ -429,6 +439,12 @@ def generate_actionable_recommendations(metrics: Dict[str, Any], insights: List[
     
     return recommendations
 
+class MarketTrendAnalysis(Model):
+    trending_families: List[str]
+    seasonal_patterns: Dict[str, float]
+    competitor_analysis: Dict[str, Any]
+    price_recommendations: Dict[str, int]
+
 async def generate_market_trends_analysis(ctx: Context) -> MarketTrendAnalysis:
     """Generate comprehensive market trend analysis"""
     
@@ -550,7 +566,25 @@ async def generate_dashboard_metrics(ctx: Context) -> Dict[str, Any]:
     
     return dashboard_data
 
-# ICP Integration Functions (unchanged)
+async def generate_analytics_report(data: Dict) -> Dict[str, Any]:
+    """Generate analytics report based on request data"""
+    return {
+        "report_type": "comprehensive",
+        "generated_at": datetime.now().timestamp(),
+        "user_metrics": system_analytics,
+        "insights": ["Analytics functioning well", "User engagement high"],
+        "recommendations": ["Continue current strategy", "Monitor KPIs"]
+    }
+
+async def create_dashboard_data(user_id: str, data: Dict) -> Dict[str, Any]:
+    """Create dashboard data for specific user"""
+    return await generate_dashboard_metrics(None)
+
+async def process_analytics_event_data(event_type: str, data: Dict) -> Dict[str, Any]:
+    """Process analytics event with data"""
+    return {"processed": True, "event_type": event_type, "timestamp": datetime.now().timestamp()}
+
+# ICP Integration Functions
 async def sync_analytics_to_icp(ctx: Context, event_data: Dict) -> bool:
     """Sync analytics data to ICP canister"""
     
@@ -577,11 +611,11 @@ async def sync_analytics_to_icp(ctx: Context, event_data: Dict) -> bool:
             ctx.logger.info(f"✅ Analytics synced to ICP for user {event_data['user_id']}")
             return True
         else:
-            ctx.logger.error(f"❌ ICP analytics sync failed: {result.get('error', 'Unknown error')}")
+            ctx.logger.error(f"⚠ ICP analytics sync failed: {result.get('error', 'Unknown error')}")
             return False
             
     except Exception as e:
-        ctx.logger.error(f"❌ ICP analytics sync error: {e}")
+        ctx.logger.error(f"⚠ ICP analytics sync error: {e}")
         return False
 
 async def get_analytics_from_icp(ctx: Context, seller_id: str, time_period: str) -> Optional[Dict]:
@@ -617,7 +651,7 @@ async def get_analytics_from_icp(ctx: Context, seller_id: str, time_period: str)
             return None
             
     except Exception as e:
-        ctx.logger.error(f"❌ ICP analytics retrieval error: {e}")
+        ctx.logger.error(f"⚠ ICP analytics retrieval error: {e}")
         return None
 
 async def get_market_trends_from_icp(ctx: Context) -> Optional[Dict]:
@@ -636,7 +670,7 @@ async def get_market_trends_from_icp(ctx: Context) -> Optional[Dict]:
             return None
             
     except Exception as e:
-        ctx.logger.error(f"❌ Market trends retrieval error: {e}")
+        ctx.logger.error(f"⚠ Market trends retrieval error: {e}")
         return None
 
 async def get_platform_stats_from_icp(ctx: Context) -> Optional[Dict]:
@@ -655,7 +689,7 @@ async def get_platform_stats_from_icp(ctx: Context) -> Optional[Dict]:
             return None
             
     except Exception as e:
-        ctx.logger.error(f"❌ Platform stats retrieval error: {e}")
+        ctx.logger.error(f"⚠ Platform stats retrieval error: {e}")
         return None
 
 async def call_icp_canister(ctx: Context, method: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -686,11 +720,11 @@ async def call_icp_canister(ctx: Context, method: str, params: Dict[str, Any]) -
                     return {"success": True, "result": result}
                 else:
                     error_text = await response.text()
-                    ctx.logger.error(f"❌ ICP call failed: {response.status} - {error_text}")
+                    ctx.logger.error(f"⚠ ICP call failed: {response.status} - {error_text}")
                     return {"success": False, "error": f"HTTP {response.status}: {error_text}"}
                     
     except Exception as e:
-        ctx.logger.error(f"❌ ICP canister call error: {e}")
+        ctx.logger.error(f"⚠ ICP canister call error: {e}")
         return {"success": False, "error": str(e)}
 
 async def test_icp_connection(ctx: Context) -> bool:

@@ -40,7 +40,8 @@ def main():
     # Define agent files
     agents_dir = Path(__file__).parent
     agent_files = [
-        (agents_dir / "coordinator.py", "System Coordinator"),
+        (agents_dir / "CoordinatorAgents.py", "System Coordinator"),
+        (agents_dir / "CoordinatorBridge.py", "System Coordinator Bridge Layer"),
         (agents_dir / "consultation" / "consultation_agent.py", "Consultation AI"),
         (agents_dir / "recommendation" / "recommendation_agent.py", "Recommendation AI"), 
         (agents_dir / "analytics" / "analytics_agent.py", "Analytics AI"),
