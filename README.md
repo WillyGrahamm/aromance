@@ -329,10 +329,10 @@ This project is licensed under the MIT License – see the [license](https://aro
 
 - **🌐 Landing Page**: https://aromance-e56c8.web.app/
 - **🗂️ Pitch Deck**: https://aromance-e56c8.web.app/PD_Aromance.pdf
+- **🔴 Demo Video** : https://youtu.be/F5PTAI8XjJs
 - **📋 Project Proposal/Full Documentation**: https://aromance-e56c8.web.app/Aromance-Resources.pdf
 - **🏆 DoraHacks BUIDL**: https://dorahacks.io/buidl/31403
 - **📧 Email**: willygraham2009@gmail.com
-- **💻 GitHub**: https://github.com/WillyGrahamm/aromance
 
 ---
 
